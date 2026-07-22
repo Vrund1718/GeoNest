@@ -13,7 +13,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 const signupSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
-  phone: z.string().min(10, 'Phone number must be at least 10 digits'),
+  phone: z.string().length(10, 'Phone number must be exactly 10 digits'),
   password: z.string().min(6, 'Password must be at least 6 characters').regex(/(?=.*[A-Za-z])(?=.*\d)/, 'Password must contain at least one letter and one number'),
   role: z.enum([UserRole.Student, UserRole.Owner], {
     errorMap: () => ({ message: 'Role must be student or owner' }),

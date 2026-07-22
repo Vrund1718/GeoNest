@@ -3,13 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '../../context/AuthContext';
 import { Button } from '../../components/Button';
 import { FormField, SelectField } from '../../components/FormField';
+import { PasswordStrengthIndicator } from '../../components/PasswordStrengthIndicator';
 import { z } from 'zod';
+import { ApiError } from '../../services/api';
 
 const signupSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
-  phone: z.string().min(10, 'Phone number must be at least 10 digits'),
-  password: z.string().min(6, 'Password must be at least 6 characters').regex(/(?=.*[A-Za-z])(?=.*\d)/, 'Password must contain at least one letter and one number'),
+  phone: z.string().length(10, 'Please enter a valid 10-digit mobile number'),
+  password: z.string().min(6, 'Password must be at least 6 characters').regex(/(?=.*[a-zA-Z])(?=.*[0-9])/, 'Password must contain at least one letter and one number'),
   confirmPassword: z.string(),
   role: z.enum(['student', 'owner'], {
     errorMap: () => ({ message: 'Role must be student or owner' }),
@@ -28,10 +30,15 @@ export const SignupPage = () => {
   const [role, setRole] = useState<UserRole>('student');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { signup } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+    setGeneralError('');
+    setIsLoading(true);
+
     try {
       const data = signupSchema.parse({
         name,
@@ -43,15 +50,20 @@ export const SignupPage = () => {
       });
       await signup(data.name, data.email, data.phone, data.password, data.role);
     } catch (err: any) {
+      console.error('[Signup] Error:', err);
       if (err.name === 'ZodError') {
         const fieldErrors: Record<string, string> = {};
         err.issues.forEach((issue: any) => {
           fieldErrors[issue.path[0]] = issue.message;
         });
         setErrors(fieldErrors);
+      } else if (err instanceof ApiError) {
+        setGeneralError(err.message);
       } else {
-        setGeneralError(err.message || 'Signup failed');
+        setGeneralError('Signup failed. Please try again.');
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -95,13 +107,16 @@ export const SignupPage = () => {
               onChange={(e) => setPhone(e.target.value)}
               error={errors.phone}
             />
-            <FormField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              error={errors.password}
-            />
+            <div>
+              <FormField
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                error={errors.password}
+              />
+              <PasswordStrengthIndicator password={password} />
+            </div>
             <FormField
               label="Confirm Password"
               type="password"
@@ -118,8 +133,8 @@ export const SignupPage = () => {
               <option value="student">Student</option>
               <option value="owner">PG Owner</option>
             </SelectField>
-            <Button type="submit" className="w-full mt-2">
-              Sign Up
+            <Button type="submit" className="w-full mt-2" disabled={isLoading}>
+              {isLoading ? 'Signing up...' : 'Sign Up'}
             </Button>
           </form>
 

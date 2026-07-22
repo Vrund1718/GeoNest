@@ -6,10 +6,24 @@ interface ApiRequestOptions {
   token?: string;
 }
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public code?: string,
+    public status?: number
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export const apiRequest = async (
   endpoint: string,
   { method, body, token }: ApiRequestOptions
 ) => {
+  const url = `${API_URL}${endpoint}`;
+  console.log(`[API] ${method} ${url}`, { body });
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -18,18 +32,45 @@ export const apiRequest = async (
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    method,
-    headers,
-    credentials: 'include',
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  try {
+    const response = await fetch(url, {
+      method,
+      headers,
+      credentials: 'include',
+      body: body ? JSON.stringify(body) : undefined,
+    });
 
-  const data = await response.json();
+    console.log(`[API] Response status: ${response.status}`);
 
-  if (!response.ok) {
-    throw data.error;
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseErr) {
+      console.error('[API] Failed to parse response JSON', parseErr);
+      throw new ApiError('Invalid response from server', 'PARSE_ERROR', response.status);
+    }
+
+    if (!response.ok) {
+      console.error('[API] Request failed', data);
+      throw new ApiError(
+        data.error?.message || 'Request failed',
+        data.error?.code,
+        response.status
+      );
+    }
+
+    console.log('[API] Request succeeded', data);
+    return data;
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+
+    console.error('[API] Network error', err);
+    if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+      throw new ApiError('Unable to connect to server, please try again', 'NETWORK_ERROR');
+    }
+
+    throw new ApiError('An unexpected error occurred', 'UNEXPECTED_ERROR');
   }
-
-  return data;
 };
