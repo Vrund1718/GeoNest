@@ -1,1 +1,6 @@
 implementation.md
+node_modules/
+.env
+backend/.env
+frontend/.env
+
