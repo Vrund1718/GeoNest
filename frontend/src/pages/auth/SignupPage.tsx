@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth, UserRole } from '../../context/AuthContext';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/Button';
-import { FormField, SelectField } from '../../components/FormField';
+import { FormField } from '../../components/FormField';
 import { PasswordStrengthIndicator } from '../../components/PasswordStrengthIndicator';
 import { z } from 'zod';
 import { ApiError } from '../../services/api';
@@ -10,12 +10,8 @@ import { ApiError } from '../../services/api';
 const signupSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
-  phone: z.string().length(10, 'Please enter a valid 10-digit mobile number'),
-  password: z.string().min(6, 'Password must be at least 6 characters').regex(/(?=.*[a-zA-Z])(?=.*[0-9])/, 'Password must contain at least one letter and one number'),
+  password: z.string().min(6, 'Password must be at least 6 characters').regex(/(?=.*[A-Za-z])(?=.*\d)/, 'Password must contain at least one letter and one number'),
   confirmPassword: z.string(),
-  role: z.enum(['student', 'owner'], {
-    errorMap: () => ({ message: 'Role must be student or owner' }),
-  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
@@ -24,14 +20,12 @@ const signupSchema = z.object({
 export const SignupPage = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('student');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signup } = useAuth();
+  const { register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,12 +37,10 @@ export const SignupPage = () => {
       const data = signupSchema.parse({
         name,
         email,
-        phone,
         password,
         confirmPassword,
-        role,
       });
-      await signup(data.name, data.email, data.phone, data.password, data.role);
+      await register(data.name, data.email, data.password);
     } catch (err: any) {
       console.error('[Signup] Error:', err);
       if (err.name === 'ZodError') {
@@ -100,13 +92,6 @@ export const SignupPage = () => {
               onChange={(e) => setEmail(e.target.value)}
               error={errors.email}
             />
-            <FormField
-              label="Phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              error={errors.phone}
-            />
             <div>
               <FormField
                 label="Password"
@@ -124,15 +109,6 @@ export const SignupPage = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               error={errors.confirmPassword}
             />
-            <SelectField
-              label="Role"
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              error={errors.role}
-            >
-              <option value="student">Student</option>
-              <option value="owner">PG Owner</option>
-            </SelectField>
             <Button type="submit" className="w-full mt-2" disabled={isLoading}>
               {isLoading ? 'Signing up...' : 'Sign Up'}
             </Button>

@@ -11,12 +11,12 @@ export const Button = ({
   ...props
 }: ButtonProps) => {
   const baseClasses =
-    'font-medium rounded-lg px-4 py-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
+    'font-medium rounded-lg px-4 py-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 hover:scale-105 active:scale-95';
   const variantClasses = {
     primary:
-      'bg-chai-cup text-white hover:bg-opacity-90 focus:ring-chai-cup',
+      'bg-chai-cup text-white hover:bg-opacity-90 focus:ring-chai-cup shadow-md hover:shadow-lg',
     secondary:
-      'bg-white text-ink-black border border-gray-300 hover:bg-gray-50 focus:ring-gray-400',
+      'bg-white text-ink-black border border-gray-300 hover:bg-gray-50 focus:ring-gray-400 hover:border-chai-cup',
   };
 
   return (

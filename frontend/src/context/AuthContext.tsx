@@ -1,24 +1,20 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 import { apiRequest } from '../services/api';
-
-export type UserRole = 'student' | 'owner' | 'admin';
 
 export interface User {
   _id: string;
   name: string;
   email: string;
-  phone: string;
-  role: UserRole;
   createdAt: string;
   updatedAt: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  accessToken: string | null;
+  token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, phone: string, password: string, role: UserRole) => Promise<void>;
-  logout: () => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
   loading: boolean;
 }
 
@@ -26,59 +22,39 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const refreshToken = async () => {
-    try {
-      const data = await apiRequest('/auth/refresh', { method: 'POST' });
-      setAccessToken(data.accessToken);
-      const meData = await apiRequest('/auth/me', { method: 'GET', token: data.accessToken });
-      setUser(meData.user);
-    } catch (err) {
-      console.error('Failed to refresh token', err);
-      setUser(null);
-      setAccessToken(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    refreshToken();
-  }, []);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const login = async (email: string, password: string) => {
-    const data = await apiRequest('/auth/login', {
+    const data = await apiRequest('/login', {
       method: 'POST',
       body: { email, password },
     });
-    setAccessToken(data.accessToken);
+    setToken(data.token);
     setUser(data.user);
   };
 
-  const signup = async (name: string, email: string, phone: string, password: string, role: UserRole) => {
-    const data = await apiRequest('/auth/signup', {
+  const register = async (name: string, email: string, password: string) => {
+    const data = await apiRequest('/register', {
       method: 'POST',
-      body: { name, email, phone, password, role },
+      body: { name, email, password },
     });
-    setAccessToken(data.accessToken);
+    setToken(data.token);
     setUser(data.user);
   };
 
-  const logout = async () => {
-    await apiRequest('/auth/logout', { method: 'POST' });
+  const logout = () => {
     setUser(null);
-    setAccessToken(null);
+    setToken(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        accessToken,
+        token,
         login,
-        signup,
+        register,
         logout,
         loading,
       }}

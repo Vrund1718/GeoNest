@@ -49,7 +49,7 @@ export const FormField = ({
           type={inputType}
           value={value}
           onChange={type === 'tel' ? handleTelChange : onChange}
-          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-chai-cup focus:border-transparent ${
+          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-chai-cup focus:border-transparent transition-all duration-200 hover:border-chai-cup hover:shadow-sm ${
             error ? 'border-red-500' : 'border-gray-300'
           } ${className} ${type === 'password' ? 'pr-12' : ''}`}
           {...props}
@@ -75,7 +75,7 @@ export const SelectField = ({ label, error, className = '', ...props }: SelectFi
       {label}
     </label>
     <select
-      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-chai-cup focus:border-transparent ${
+      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-chai-cup focus:border-transparent transition-all duration-200 hover:border-chai-cup hover:shadow-sm ${
         error ? 'border-red-500' : 'border-gray-300'
       } ${className}`}
       {...props}
