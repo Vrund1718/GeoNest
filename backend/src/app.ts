@@ -1,7 +1,9 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.routes';
+import otpRoutes from './routes/otp.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { requireDBConnection } from './config/db';
 import env from './config/env';
@@ -31,9 +33,12 @@ const corsOptions: cors.CorsOptions = {
 
 app.use(helmet());
 app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(express.json());
 
 app.use('/api', requireDBConnection, authRoutes);
+app.use('/api/auth', requireDBConnection, authRoutes);
+app.use('/api/auth', requireDBConnection, otpRoutes);
 
 app.use(errorHandler);
 

@@ -1,10 +1,14 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { apiRequest } from '../services/api';
 
+export type UserRole = 'student' | 'owner' | 'admin';
+
 export interface User {
   _id: string;
   name: string;
   email: string;
+  phone?: string;
+  role: UserRole;
   createdAt: string;
   updatedAt: string;
 }
@@ -14,6 +18,8 @@ interface AuthContextType {
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  sendOtp: (phone: string) => Promise<void>;
+  verifyOtpAndLogin: (phone: string, otp: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -43,6 +49,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(data.user);
   };
 
+  const sendOtp = async (phone: string) => {
+    await apiRequest('/auth/send-otp', {
+      method: 'POST',
+      body: { phone, channel: 'sms' },
+    });
+  };
+
+  const verifyOtpAndLogin = async (phone: string, otp: string) => {
+    const data = await apiRequest('/auth/verify-otp', {
+      method: 'POST',
+      body: { phone, otp },
+    });
+    setToken(data.token);
+    setUser(data.user);
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -55,6 +77,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         token,
         login,
         register,
+        sendOtp,
+        verifyOtpAndLogin,
         logout,
         loading,
       }}

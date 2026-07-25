@@ -84,7 +84,7 @@ export const LoginPage = () => {
             </Button>
           </form>
 
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center space-y-2">
             <p className="text-gray-600">
               Don't have an account?{' '}
               <Link
@@ -92,6 +92,15 @@ export const LoginPage = () => {
                 className="text-chai-cup font-medium hover:underline"
               >
                 Sign up
+              </Link>
+            </p>
+            <p className="text-gray-600">
+              Use phone instead?{' '}
+              <Link
+                to="/login/otp"
+                className="text-chai-cup font-medium hover:underline"
+              >
+                Login with OTP
               </Link>
             </p>
           </div>

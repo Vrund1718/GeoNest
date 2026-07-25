@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
+import { UserRole } from '../models/User';
 
 export interface AuthRequest extends Request {
-  user?: { userId: string; role: string };
+  user?: { userId: string; role: UserRole };
 }
 
 export const protect = async (
@@ -10,13 +11,15 @@ export const protect = async (
   res: Response,
   next: NextFunction
 ) => {
-  let token;
+  let token: string | undefined;
 
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies && typeof req.cookies.geonest_token === 'string') {
+    token = req.cookies.geonest_token;
   }
 
   if (!token) {
@@ -30,7 +33,7 @@ export const protect = async (
 
   try {
     const decoded = verifyAccessToken(token);
-    req.user = decoded;
+    req.user = { userId: decoded.userId, role: decoded.role };
     next();
   } catch (error) {
     return res.status(401).json({

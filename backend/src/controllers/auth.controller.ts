@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import z from 'zod';
-import User from '../models/User';
+import User, { IUser } from '../models/User';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateToken } from '../utils/jwt';
+import env from '../config/env';
 
 const registerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -13,6 +14,29 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email('Invalid email'),
   password: z.string().min(1, 'Password is required'),
+});
+
+const COOKIE_NAME = 'geonest_token';
+const COOKIE_TTL_MS = 24 * 60 * 60 * 1000;
+
+const setAuthCookie = (res: Response, token: string) => {
+  res.cookie(COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    secure: env.NODE_ENV === 'production',
+    maxAge: COOKIE_TTL_MS,
+    path: '/',
+  });
+};
+
+const buildUserPayload = (user: IUser) => ({
+  _id: user._id.toString(),
+  name: user.name,
+  email: user.email,
+  phone: user.phone,
+  role: user.role,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
 });
 
 export const register = async (
@@ -42,16 +66,11 @@ export const register = async (
     });
 
     const token = generateToken(user);
+    setAuthCookie(res, token);
 
     res.status(201).json({
       token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      user: buildUserPayload(user),
     });
   } catch (error) {
     next(error);
@@ -87,16 +106,11 @@ export const login = async (
     }
 
     const token = generateToken(user);
+    setAuthCookie(res, token);
 
     res.json({
       token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      user: buildUserPayload(user),
     });
   } catch (error) {
     next(error);

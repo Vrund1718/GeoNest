@@ -6,6 +6,7 @@ import {
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { LoginPage } from '../pages/auth/LoginPage';
+import { OtpLoginPage } from '../pages/auth/OtpLoginPage';
 import { SignupPage } from '../pages/auth/SignupPage';
 import { StudentDashboardLayout } from '../layouts/StudentDashboardLayout';
 import { OwnerDashboardLayout } from '../layouts/OwnerDashboardLayout';
@@ -41,6 +42,15 @@ const router = createBrowserRouter([
       <>
         <RedirectAfterAuth />
         <LoginPage />
+      </>
+    ),
+  },
+  {
+    path: '/login/otp',
+    element: (
+      <>
+        <RedirectAfterAuth />
+        <OtpLoginPage />
       </>
     ),
   },
