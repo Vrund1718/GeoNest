@@ -14,9 +14,9 @@ export const Sidebar = ({ items, title }: SidebarProps) => {
   const location = useLocation();
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 pt-16">
+    <aside className="w-64 bg-indigo border-r border-indigo/50 h-screen fixed left-0 top-0 pt-16 shadow-lg">
       <div className="p-6">
-        <h2 className="font-display text-xl font-semibold text-ink-black mb-8">
+        <h2 className="font-display text-xl font-semibold text-sand mb-8">
           {title}
         </h2>
         <nav className="space-y-2">
@@ -26,10 +26,10 @@ export const Sidebar = ({ items, title }: SidebarProps) => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`block px-4 py-3 rounded-lg transition-colors ${
+                className={`block px-4 py-3 rounded-lg transition-all duration-150 ease-out motion-reduce:transition-none ${
                   isActive
-                    ? 'bg-chai-cup bg-opacity-10 text-chai-cup font-medium'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-marigold text-ink font-semibold shadow-md'
+                    : 'text-sand/80 hover:bg-sand/10 hover:text-sand'
                 }`}
               >
                 {item.label}

@@ -4,8 +4,12 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.routes';
 import otpRoutes from './routes/otp.routes';
+import ownerRoutes from './routes/owner.routes';
+import adminRoutes from './routes/admin.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { requireDBConnection } from './config/db';
+import { protect } from './middleware/auth.middleware';
+import { requireOwner, requireAdmin } from './middleware/role';
 import env from './config/env';
 
 const app = express();
@@ -39,6 +43,8 @@ app.use(express.json());
 app.use('/api', requireDBConnection, authRoutes);
 app.use('/api/auth', requireDBConnection, authRoutes);
 app.use('/api/auth', requireDBConnection, otpRoutes);
+app.use('/api/owners', requireDBConnection, protect, requireOwner, ownerRoutes);
+app.use('/api/admin', requireDBConnection, protect, requireAdmin, adminRoutes);
 
 app.use(errorHandler);
 

@@ -8,15 +8,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        'chai-cup': '#A67B5B',
-        'street-light': '#F5D27E',
-        'monsoon-sky': '#5A889C',
-        'kolkata-grey': '#F0F0F0',
-        'ink-black': '#2D2D2D',
+        sand: '#FBF3E6',
+        indigo: '#2C3A63',
+        marigold: '#E8A33D',
+        ink: '#2A2420',
+        sage: '#5B8C5A',
+        coral: '#E0685A',
       },
       fontFamily: {
-        display: ['"Poppins"', 'sans-serif'],
-        body: ['"Noto Sans Devanagari"', '"Roboto"', 'sans-serif'],
+        display: ['Fredoka', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'monospace'],
       },
     },
   },
