@@ -191,27 +191,27 @@ export const OtpLoginPage = () => {
   const canResend = cooldownMs <= 0 && !isSendingOtp && !isVerifyingOtp;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-kolkata-grey p-4">
+    <div className="min-h-screen flex items-center justify-center bg-sand p-4">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
-        <div className="h-2 bg-chai-cup" />
+        <div className="h-2 bg-marigold" />
         <div className="p-8">
-          <h1 className="font-display text-3xl font-bold text-ink-black mb-2 text-center">
+          <h1 className="font-display text-3xl font-bold text-ink mb-2 text-center">
             Login with OTP
           </h1>
-          <p className="text-gray-600 text-center mb-8">
+          <p className="text-ink/60 text-center mb-8">
             {step === 'phone'
               ? 'Enter your phone number to receive an OTP'
               : 'Enter the verification code we sent'}
           </p>
 
           {infoMessage && !generalError && (
-            <div className="bg-chai-cup/10 border border-chai-cup/30 text-chai-cup px-4 py-3 rounded mb-4 text-sm">
+            <div className="bg-marigold/10 border border-marigold/30 text-ink px-4 py-3 rounded mb-4 text-sm">
               {infoMessage}
             </div>
           )}
 
           {generalError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+            <div className="bg-coral/10 border border-coral/30 text-coral px-4 py-3 rounded mb-4 text-sm">
               {generalError}
             </div>
           )}
@@ -254,9 +254,9 @@ export const OtpLoginPage = () => {
             <form onSubmit={handleVerifyOtp}>
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-sm text-ink-black/70">
+                  <p className="text-sm text-ink/70">
                     OTP sent to{' '}
-                    <span className="font-medium text-ink-black">
+                    <span className="font-medium text-ink">
                       {fullPhoneE164}
                     </span>
                   </p>
@@ -268,7 +268,7 @@ export const OtpLoginPage = () => {
                       setInfoMessage('');
                       setErrors({});
                     }}
-                    className="text-sm text-chai-cup hover:underline"
+                    className="text-sm text-indigo hover:underline"
                   >
                     Change number
                   </button>
@@ -276,7 +276,7 @@ export const OtpLoginPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink-black mb-1">
+                <label className="block text-sm font-medium text-ink mb-1">
                   Verification code (6 digits)
                 </label>
                 <input
@@ -289,13 +289,13 @@ export const OtpLoginPage = () => {
                     const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, OTP_DIGITS);
                     setOtpCode(digitsOnly);
                   }}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-chai-cup focus:border-transparent transition-all duration-200 hover:border-chai-cup hover:shadow-sm tracking-[0.5em] text-center text-xl font-semibold ${
-                    errors.otp ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-4 py-3 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo focus:border-transparent transition-all duration-150 ease-out hover:border-indigo hover:shadow-sm tracking-[0.5em] text-center text-xl font-semibold motion-reduce:transition-none ${
+                    errors.otp ? 'border-coral' : 'border-ink/20'
                   }`}
                   placeholder="••••••"
                 />
                 {errors.otp && (
-                  <p className="text-red-500 text-xs mt-1">{errors.otp}</p>
+                  <p className="text-coral text-xs mt-1" role="alert">{errors.otp}</p>
                 )}
               </div>
 
@@ -305,14 +305,14 @@ export const OtpLoginPage = () => {
                     type="button"
                     onClick={() => handleSendOtp()}
                     disabled={isSendingOtp}
-                    className="text-sm text-chai-cup hover:underline disabled:opacity-50"
+                    className="text-sm text-indigo hover:underline disabled:opacity-50"
                   >
                     {isSendingOtp ? 'Resending OTP...' : 'Resend OTP'}
                   </button>
                 ) : (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-ink/50">
                     Resend OTP in{' '}
-                    <span className="font-medium text-ink-black">
+                    <span className="font-medium text-ink">
                       {cooldownSeconds}s
                     </span>
                   </p>
@@ -330,20 +330,20 @@ export const OtpLoginPage = () => {
           )}
 
           <div className="mt-8 text-center space-y-2">
-            <p className="text-gray-600">
+            <p className="text-ink/60">
               Don't have an account?{' '}
               <Link
                 to="/signup"
-                className="text-chai-cup font-medium hover:underline"
+                className="text-indigo font-medium hover:underline"
               >
                 Sign up
               </Link>
             </p>
-            <p className="text-gray-600">
+            <p className="text-ink/60">
               Prefer email?{' '}
               <Link
                 to="/login"
-                className="text-chai-cup font-medium hover:underline"
+                className="text-indigo font-medium hover:underline"
               >
                 Login with password
               </Link>

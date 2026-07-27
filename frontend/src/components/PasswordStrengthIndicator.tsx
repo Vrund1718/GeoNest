@@ -17,16 +17,16 @@ export const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicato
 
     if (score <= 2) {
       label = 'Weak';
-      color = 'bg-red-500';
+      color = 'bg-coral';
     } else if (score === 3) {
       label = 'Medium';
-      color = 'bg-yellow-500';
+      color = 'bg-marigold';
     } else if (score === 4) {
       label = 'Strong';
-      color = 'bg-blue-500';
+      color = 'bg-indigo';
     } else {
       label = 'Very Strong';
-      color = 'bg-green-500';
+      color = 'bg-sage';
     }
 
     const width = `${(score / 5) * 100}%`;
@@ -42,14 +42,14 @@ export const PasswordStrengthIndicator = ({ password }: PasswordStrengthIndicato
     <div className="mt-2">
       <div className="flex items-center gap-2 mb-1">
         <span className={`text-xs font-medium ${
-          label === 'Weak' ? 'text-red-600' :
-          label === 'Medium' ? 'text-yellow-600' :
-          label === 'Strong' ? 'text-blue-600' : 'text-green-600'
+          label === 'Weak' ? 'text-coral' :
+          label === 'Medium' ? 'text-marigold' :
+          label === 'Strong' ? 'text-indigo' : 'text-sage'
         }`}>
           {label}
         </span>
       </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div className="h-2 bg-ink/10 rounded-full overflow-hidden">
         <div
           className={`h-full transition-all duration-300 ${color}`}
           style={{ width }}

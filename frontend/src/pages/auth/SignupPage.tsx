@@ -60,19 +60,19 @@ export const SignupPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-kolkata-grey p-4">
+    <div className="min-h-screen flex items-center justify-center bg-sand p-4">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
-        <div className="h-2 bg-chai-cup"></div>
+        <div className="h-2 bg-marigold"></div>
         <div className="p-8">
-          <h1 className="font-display text-3xl font-bold text-ink-black mb-2 text-center">
+          <h1 className="font-display text-3xl font-bold text-ink mb-2 text-center">
             Create Account
           </h1>
-          <p className="text-gray-600 text-center mb-8">
+          <p className="text-ink/60 text-center mb-8">
             Join GeoNest today
           </p>
 
           {generalError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            <div className="bg-coral/10 border border-coral/30 text-coral px-4 py-3 rounded mb-4">
               {generalError}
             </div>
           )}
@@ -115,11 +115,11 @@ export const SignupPage = () => {
           </form>
 
           <div className="mt-8 text-center">
-            <p className="text-gray-600">
+            <p className="text-ink/60">
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="text-chai-cup font-medium hover:underline"
+                className="text-indigo font-medium hover:underline"
               >
                 Login
               </Link>
