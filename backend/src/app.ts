@@ -1,51 +1,114 @@
 import express from 'express';
-import helmet from 'helmet';
 import cors from 'cors';
+import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import authRoutes from './routes/auth.routes';
-import otpRoutes from './routes/otp.routes';
-import ownerRoutes from './routes/owner.routes';
-import adminRoutes from './routes/admin.routes';
-import { errorHandler } from './middleware/error.middleware';
-import { requireDBConnection } from './config/db';
-import { protect } from './middleware/auth.middleware';
-import { requireOwner, requireAdmin } from './middleware/role';
-import env from './config/env';
+import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { config } from './config';
+import authRoutes from './routes/auth';
+import ownerRoutes from './routes/owner';
+import adminRoutes from './routes/admin';
+import geoRoutes from './routes/geo';
+import pgRoutes from './routes/pg';
+import userRoutes from './routes/user';
+import recRoutes from './routes/recommendations';
 
 const app = express();
 
-const allowedOrigins = new Set(env.CLIENT_ORIGINS);
+app.set('trust proxy', 1);
 
-const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.has(origin)) return callback(null, true);
-    if (env.NODE_ENV === 'development') {
-      try {
-        const { hostname, protocol } = new URL(origin);
-        if ((hostname === 'localhost' || hostname === '127.0.0.1') && protocol === 'http:') {
-          return callback(null, true);
-        }
-      } catch {
-        // fall through to reject
-      }
-    }
-    callback(new Error(`CORS blocked origin: ${origin}`));
-  },
-  credentials: true,
-};
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
-app.use(helmet());
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: [config.frontendOrigin].filter(Boolean),
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  })
+);
+
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.json());
 
-app.use('/api', requireDBConnection, authRoutes);
-app.use('/api/auth', requireDBConnection, authRoutes);
-app.use('/api/auth', requireDBConnection, otpRoutes);
-app.use('/api/owners', requireDBConnection, protect, requireOwner, ownerRoutes);
-app.use('/api/admin', requireDBConnection, protect, requireAdmin, adminRoutes);
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-app.use(errorHandler);
+const searchLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many search requests, try again later.' },
+});
+
+const recLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many recommendation requests, try again later.' },
+});
+
+const authCredentialLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown-ip';
+    const email =
+      (req.body?.email as string | undefined)?.trim().toLowerCase() ||
+      (req.body?.phone as string | undefined)?.trim() ||
+      '';
+    return email ? `${ip}:${email}` : ip;
+  },
+  handler: (req, res, _next, options) => {
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown-ip';
+    const email =
+      (req.body?.email as string | undefined)?.trim().toLowerCase() ||
+      (req.body?.phone as string | undefined)?.trim() ||
+      '(no-email)';
+    console.warn(
+      `[RATE-LIMIT] auth block on ${req.method} ${req.originalUrl || (req.baseUrl + req.path)} — key=${ip}:${email} limit=${options.max} windowMs=${options.windowMs} userAgent=${req.headers['user-agent']?.slice(0, 80) ?? ''}`
+    );
+    res.status(options.statusCode).json({
+      error: {
+        code: 'AUTH_RATE_LIMITED',
+        message: 'Too many auth attempts, try again later.',
+      },
+    });
+  },
+});
+
+app.get('/healthz', (req, res) => res.json({ ok: true, ts: Date.now() }));
+
+app.use('/auth/signup', authCredentialLimiter);
+app.use('/auth/login', authCredentialLimiter);
+app.use('/auth', authRoutes);
+app.use('/owners', ownerRoutes);
+app.use('/admin', adminRoutes);
+app.use('/geo', geoRoutes);
+app.use('/pg', searchLimiter, pgRoutes);
+app.use('/', userRoutes);
+app.use('/recommendations', recLimiter, recRoutes);
+
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('[Unhandled]', err);
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request too large' });
+  }
+  if (err?.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ error: 'File too large. Max 5MB.' });
+  }
+  if (err?.message?.includes('Only JPG')) {
+    return res.status(400).json({ error: err.message });
+  }
+  res.status(500).json({ error: 'Internal server error' });
+});
 
 export default app;
