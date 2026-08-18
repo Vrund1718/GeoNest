@@ -1,38 +1,23 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
-export type PGStatus = 'DRAFT' | 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'REJECTED';
-export type GenderPreference = 'MALE' | 'FEMALE' | 'CO_ED';
-
-export interface IPLocation {
-  type: 'Point';
-  coordinates: [number, number];
-}
+export type GenderPreference = 'male' | 'female' | 'unisex';
+export type PGStatus = 'active' | 'inactive' | 'deleted';
 
 export interface IPGListing extends Document {
-  ownerId: Types.ObjectId;
+  ownerId: mongoose.Types.ObjectId;
   name: string;
-  description?: string;
   address: string;
   city: string;
-  state?: string;
-  pincode?: string;
-  latitude: number;
-  longitude: number;
-  location: IPLocation;
   collegeName?: string;
+  location: { type: 'Point'; coordinates: [number, number] };
   totalRooms: number;
   availableRooms: number;
   genderPreference: GenderPreference;
   pricePerMonth: number;
-  securityDeposit?: number;
-  foodIncluded: boolean;
-  amenities: Types.ObjectId[];
-  status: PGStatus;
+  securityDeposit: number;
   isVerified: boolean;
-  verifiedByAdminId?: Types.ObjectId;
-  verifiedAt?: Date;
-  rejectionReason?: string;
-  deletedAt?: Date;
+  status: PGStatus;
+  amenities: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,59 +25,27 @@ export interface IPGListing extends Document {
 const PGListingSchema: Schema = new Schema(
   {
     ownerId: { type: Schema.Types.ObjectId, ref: 'Owner', required: true, index: true },
-    name: { type: String, required: true },
-    description: { type: String },
-    address: { type: String, required: true },
-    city: { type: String, required: true, index: true },
-    state: { type: String },
-    pincode: { type: String },
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
+    name: { type: String, required: true, trim: true },
+    address: { type: String, required: true, trim: true },
+    city: { type: String, required: true, index: true, trim: true },
+    collegeName: { type: String, index: true, trim: true },
     location: {
-      type: { type: String, enum: ['Point'], default: 'Point' },
+      type: { type: String, enum: ['Point'], required: true },
       coordinates: { type: [Number], required: true },
     },
-    collegeName: { type: String, index: true },
-    totalRooms: { type: Number, required: true, default: 1 },
-    availableRooms: { type: Number, required: true, default: 1 },
-    genderPreference: {
-      type: String,
-      enum: ['MALE', 'FEMALE', 'CO_ED'],
-      required: true,
-      default: 'CO_ED',
-    },
-    pricePerMonth: { type: Number, required: true },
-    securityDeposit: { type: Number },
-    foodIncluded: { type: Boolean, default: false },
-    status: {
-      type: String,
-      enum: ['DRAFT', 'PENDING', 'ACTIVE', 'INACTIVE', 'REJECTED'],
-      required: true,
-      default: 'DRAFT',
-      index: true,
-    },
-    isVerified: { type: Boolean, default: false },
-    rejectionReason: { type: String },
-    verifiedByAdminId: { type: Schema.Types.ObjectId, ref: 'User' },
-    verifiedAt: { type: Date },
-    amenities: [{ type: Schema.Types.ObjectId, ref: 'Amenity', index: true }],
-    deletedAt: { type: Date },
+    totalRooms: { type: Number, required: true, min: 1 },
+    availableRooms: { type: Number, required: true, min: 0 },
+    genderPreference: { type: String, enum: ['male', 'female', 'unisex'], required: true },
+    pricePerMonth: { type: Number, required: true, min: 0 },
+    securityDeposit: { type: Number, required: true, min: 0, default: 0 },
+    isVerified: { type: Boolean, required: true, default: false, index: true },
+    status: { type: String, enum: ['active', 'inactive', 'deleted'], required: true, default: 'active', index: true },
+    amenities: [{ type: Schema.Types.ObjectId, ref: 'Amenity' }],
   },
   { timestamps: true }
 );
 
 PGListingSchema.index({ location: '2dsphere' });
-PGListingSchema.index({ city: 1, collegeName: 1 });
 PGListingSchema.index({ ownerId: 1, status: 1 });
-
-PGListingSchema.pre<IPGListing>('save', function (next) {
-  if (this.isModified('latitude') || this.isModified('longitude')) {
-    this.location = {
-      type: 'Point',
-      coordinates: [this.longitude, this.latitude],
-    };
-  }
-  next();
-});
 
 export default mongoose.model<IPGListing>('PGListing', PGListingSchema);

@@ -1,40 +1,32 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
-export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+export type BookingStatus = 'requested' | 'confirmed' | 'cancelled' | 'completed';
 
 export interface IBooking extends Document {
-  pgListingId: Types.ObjectId;
-  userId: Types.ObjectId;
-  ownerId: Types.ObjectId;
-  moveInDate: Date;
-  moveOutDate?: Date;
-  sharingType?: number;
-  amount: number;
+  pgId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   status: BookingStatus;
+  startDate: Date;
+  endDate: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const BookingSchema: Schema = new Schema(
   {
-    pgListingId: { type: Schema.Types.ObjectId, ref: 'PGListing', required: true },
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    ownerId: { type: Schema.Types.ObjectId, ref: 'Owner', required: true },
-    moveInDate: { type: Date, required: true },
-    moveOutDate: { type: Date },
-    sharingType: { type: Number },
-    amount: { type: Number, required: true },
+    pgId: { type: Schema.Types.ObjectId, ref: 'PGListing', required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     status: {
       type: String,
-      enum: ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'],
+      enum: ['requested', 'confirmed', 'cancelled', 'completed'],
       required: true,
-      default: 'PENDING',
+      default: 'requested',
+      index: true,
     },
+    startDate: { type: Date, required: true },
+    endDate: { type: Date, required: true },
   },
   { timestamps: true }
 );
-
-BookingSchema.index({ pgListingId: 1, status: 1 });
-BookingSchema.index({ userId: 1, status: 1 });
 
 export default mongoose.model<IBooking>('Booking', BookingSchema);

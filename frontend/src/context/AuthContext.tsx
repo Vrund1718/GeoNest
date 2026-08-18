@@ -1,97 +1,71 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { apiRequest } from '../services/api';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import api from '../lib/api';
+import { User } from '../types';
 
-export type UserRole = 'student' | 'owner' | 'admin';
-
-export interface User {
-  _id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role: UserRole;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface AuthContextType {
+interface AuthContextValue {
   user: User | null;
-  token: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  sendOtp: (phone: string) => Promise<void>;
-  verifyOtpAndLogin: (phone: string, otp: string) => Promise<void>;
-  logout: () => void;
   loading: boolean;
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  signup: (data: { name: string; email: string; phone: string; password: string; role: string }) => Promise<{ ok: boolean; error?: string; errors?: any[] }>;
+  logout: () => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, _setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const login = async (email: string, password: string) => {
-    const data = await apiRequest('/login', {
-      method: 'POST',
-      body: { email, password },
-    });
-    setToken(data.token);
-    setUser(data.user);
-  };
+  const refresh = useCallback(async () => {
+    try {
+      const { data } = await api.get('/auth/me');
+      setUser(data.user);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const register = async (name: string, email: string, password: string) => {
-    const data = await apiRequest('/register', {
-      method: 'POST',
-      body: { name, email, password },
-    });
-    setToken(data.token);
-    setUser(data.user);
-  };
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-  const sendOtp = async (phone: string) => {
-    await apiRequest('/auth/send-otp', {
-      method: 'POST',
-      body: { phone, channel: 'sms' },
-    });
-  };
+  const login = useCallback(async (email: string, password: string) => {
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      setUser(data.user);
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, error: err.response?.data?.error || 'Login failed' };
+    }
+  }, []);
 
-  const verifyOtpAndLogin = async (phone: string, otp: string) => {
-    const data = await apiRequest('/auth/verify-otp', {
-      method: 'POST',
-      body: { phone, otp },
-    });
-    setToken(data.token);
-    setUser(data.user);
-  };
+  const signup = useCallback(async (data: { name: string; email: string; phone: string; password: string; role: string }) => {
+    try {
+      const { data: res } = await api.post('/auth/signup', data);
+      setUser(res.user);
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, error: err.response?.data?.error || 'Signup failed', errors: err.response?.data?.errors };
+    }
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch {}
     setUser(null);
-    setToken(null);
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        login,
-        register,
-        sendOtp,
-        verifyOtpAndLogin,
-        logout,
-        loading,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const value = useMemo(() => ({ user, loading, login, signup, logout, refresh }), [user, loading, login, signup, logout, refresh]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 };

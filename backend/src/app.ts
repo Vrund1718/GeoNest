@@ -94,8 +94,19 @@ app.use('/owners', ownerRoutes);
 app.use('/admin', adminRoutes);
 app.use('/geo', geoRoutes);
 app.use('/pg', searchLimiter, pgRoutes);
-app.use('/', userRoutes);
 app.use('/recommendations', recLimiter, recRoutes);
+
+app.use('/api/auth/signup', authCredentialLimiter);
+app.use('/api/auth/login', authCredentialLimiter);
+app.use('/api/auth', authRoutes);
+app.use('/api/owners', ownerRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/geo', geoRoutes);
+app.use('/api/pg', searchLimiter, pgRoutes);
+app.use('/api/recommendations', recLimiter, recRoutes);
+
+app.use('/api', userRoutes);
+app.use('/', userRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('[Unhandled]', err);

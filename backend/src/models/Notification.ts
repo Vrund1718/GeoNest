@@ -1,13 +1,18 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
-export type NotificationType = 'PG_VERIFIED' | 'PG_REJECTED' | 'BOOKING_REQUEST' | 'BOOKING_CONFIRMED' | 'NEW_REVIEW' | 'COMPLAINT_RESOLVED' | 'SYSTEM';
+export type NotificationType =
+  | 'booking_request'
+  | 'booking_confirm'
+  | 'booking_cancel'
+  | 'pg_verified'
+  | 'complaint_status'
+  | 'general';
 
 export interface INotification extends Document {
-  userId: Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   type: NotificationType;
   title: string;
-  message: string;
-  relatedId?: Types.ObjectId;
+  body: string;
   isRead: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -15,20 +20,27 @@ export interface INotification extends Document {
 
 const NotificationSchema: Schema = new Schema(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     type: {
       type: String,
-      enum: ['PG_VERIFIED', 'PG_REJECTED', 'BOOKING_REQUEST', 'BOOKING_CONFIRMED', 'NEW_REVIEW', 'COMPLAINT_RESOLVED', 'SYSTEM'],
+      enum: [
+        'booking_request',
+        'booking_confirm',
+        'booking_cancel',
+        'pg_verified',
+        'complaint_status',
+        'general',
+      ],
       required: true,
+      default: 'general',
     },
-    title: { type: String, required: true },
-    message: { type: String, required: true },
-    relatedId: { type: Schema.Types.ObjectId },
-    isRead: { type: Boolean, default: false },
+    title: { type: String, required: true, trim: true },
+    body: { type: String, required: true, trim: true },
+    isRead: { type: Boolean, required: true, default: false, index: true },
   },
   { timestamps: true }
 );
 
-NotificationSchema.index({ userId: 1, isRead: 1 });
+NotificationSchema.index({ userId: 1, createdAt: -1 });
 
 export default mongoose.model<INotification>('Notification', NotificationSchema);

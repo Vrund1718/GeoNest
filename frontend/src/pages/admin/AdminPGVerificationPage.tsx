@@ -1,302 +1,129 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ClipboardCheck } from 'lucide-react';
-import { PGKeytagCard, PGKeytagData } from '../../components/PGKeytagCard';
-import { StatusBadge, StatusVariant } from '../../components/StatusBadge';
-import { VerificationReviewPanel } from '../../components/VerificationReviewPanel';
-import { useToast } from '../../components/Toast';
-import {
-  adminApi,
-  ApiError,
-  PgListing,
-} from '../../services/api';
+import React, { useEffect, useState } from 'react';
+import api from '../../lib/api';
+import { EmptyState, PageHeader, RatingStars } from '../../components/shared';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
 
-const mapStatus = (s: PgListing['status']): StatusVariant => {
-  switch (s) {
-    case 'ACTIVE':
-      return 'verified';
-    case 'PENDING':
-      return 'pending';
-    case 'REJECTED':
-      return 'rejected';
-    case 'INACTIVE':
-      return 'inactive';
-    case 'DRAFT':
-      return 'draft';
-    default:
-      return 'pending';
-  }
-};
+const pinIcon = L.divIcon({ className: '', iconSize: [30,30], iconAnchor: [15,30],
+  html: '<div style="background:#176ef5;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.2);"></div>' });
 
-const mapToKeytag = (p: PgListing): PGKeytagData => ({
-  id: p.id,
-  name: p.name,
-  city: p.city,
-  collegeName: p.collegeName,
-  distanceKm: p.distanceKm,
-  pricePerMonth: p.pricePerMonth,
-  status: mapStatus(p.status),
-  primaryImage:
-    p.images?.find((i) => i.isPrimary)?.url || p.images?.[0]?.url,
-  statusReason: p.rejectionReason,
-});
-
-const Skeleton = () => (
-  <article
-    aria-hidden="true"
-    className="relative rounded-2xl bg-sand border border-ink/5 overflow-hidden"
-  >
-    <div className="p-5 pt-10">
-      <div className="mb-4 aspect-[4/3] rounded-xl bg-ink/5 animate-pulse" />
-      <div className="h-5 w-2/3 rounded bg-ink/10 animate-pulse mb-2" />
-      <div className="h-3.5 w-5/6 rounded bg-ink/8 animate-pulse mb-3" />
-      <div className="h-5 w-1/3 rounded-full bg-ink/10 animate-pulse mb-4" />
-      <div className="flex gap-2">
-        <div className="h-7 w-16 rounded bg-ink/8 animate-pulse" />
-        <div className="h-7 w-24 rounded bg-ink/8 animate-pulse" />
-      </div>
-    </div>
-  </article>
-);
-
-export const AdminPGVerificationPage = () => {
-  const toast = useToast();
-  const [list, setList] = useState<PgListing[]>([]);
+export const AdminPGVerificationPage: React.FC = () => {
+  const [pgs, setPgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [panelMobileOpen, setPanelMobileOpen] = useState(false);
-  const [approving, setApproving] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
-  const [rejectionOpen, setRejectionOpen] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [rejectionError, setRejectionError] = useState<string | undefined>();
+  const [selected, setSelected] = useState<any>(null);
+  const [acting, setActing] = useState(false);
 
-  const load = () => {
-    setLoading(true);
-    let alive = true;
-    adminApi
-      .listPending()
-      .then((res) => {
-        if (alive) {
-          const data = res.data || [];
-          setList(data);
-          if (
-            !selectedId ||
-            !data.find((d) => d.id === selectedId)
-          ) {
-            setSelectedId(data[0]?.id || null);
-          }
-        }
-      })
-      .catch((e: unknown) => {
-        if (!alive) return;
-        const msg =
-          e instanceof ApiError
-            ? e.message
-            : 'Could not load the verification queue.';
-        toast.show({
-          variant: 'error',
-          title: 'Failed to load queue',
-          message: msg,
-        });
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
+  const load = async () => {
+    try { const { data } = await api.get('/admin/pg/pending'); setPgs(data.pgs || []); } catch {}
+    setLoading(false);
   };
+  useEffect(() => { load(); }, []);
 
-  useEffect(load, [toast]);
-
-  const selected = useMemo(
-    () => list.find((p) => p.id === selectedId) || null,
-    [list, selectedId]
-  );
-  const keytagList = useMemo(() => list.map(mapToKeytag), [list]);
-
-  const handleApprove = async (id: string) => {
-    setApproving(true);
+  const verify = async (v: boolean) => {
+    if (!selected) return;
+    setActing(true);
     try {
-      await adminApi.verify(id, true);
-      setList((prev) => prev.filter((p) => p.id !== id));
-      if (selectedId === id) {
-        const remaining = list.filter((p) => p.id !== id);
-        setSelectedId(remaining[0]?.id || null);
-        setPanelMobileOpen(false);
-      }
-      toast.show({
-        variant: 'success',
-        title: 'PG approved',
-        message:
-          'The listing is now live and students can find it in search.',
-      });
-    } catch (e: unknown) {
-      const msg =
-        e instanceof ApiError ? e.message : 'Please try again in a moment.';
-      toast.show({
-        variant: 'error',
-        title: 'Could not approve',
-        message: msg,
-      });
-    } finally {
-      setApproving(false);
-    }
-  };
-
-  const handleReject = async (id: string, reason: string) => {
-    const trimmed = reason.trim();
-    if (trimmed.length < 10) {
-      setRejectionError(
-        'Rejection reason must be at least 10 characters — the owner needs specifics to fix it.'
-      );
-      return;
-    }
-    setRejectionError(undefined);
-    setRejecting(true);
-    try {
-      await adminApi.verify(id, false, trimmed);
-      setList((prev) => prev.filter((p) => p.id !== id));
-      if (selectedId === id) {
-        const remaining = list.filter((p) => p.id !== id);
-        setSelectedId(remaining[0]?.id || null);
-      }
-      setRejectionOpen(false);
-      setRejectionReason('');
-      setPanelMobileOpen(false);
-      toast.show({
-        variant: 'success',
-        title: 'PG rejected',
-        message: 'The owner has been notified with the reason.',
-      });
-    } catch (e: unknown) {
-      const msg =
-        e instanceof ApiError ? e.message : 'Please try again in a moment.';
-      toast.show({
-        variant: 'error',
-        title: 'Could not reject',
-        message: msg,
-      });
-    } finally {
-      setRejecting(false);
-    }
+      await api.put(`/admin/pg/${selected._id}/verify`, { verified: v });
+      setSelected(null);
+      load();
+    } catch {}
+    setActing(false);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-ink leading-tight">
-            PG Verification
-          </h1>
-          <p className="text-ink/60 text-sm mt-1">
-            {loading
-              ? 'Loading the verification queue…'
-              : list.length === 0
-              ? 'No pending listings.'
-              : `${list.length} listing${
-                  list.length === 1 ? '' : 's'
-                } waiting for review.`}
-          </p>
-        </div>
-        <StatusBadge variant="pending">
-          <span className="font-mono">{list.length}</span>
-          <span className="ml-1">pending</span>
-        </StatusBadge>
-      </div>
-
+    <div>
+      <PageHeader title="PG Verifications" subtitle={`${pgs.length} pending`} />
       {loading ? (
-        <div
-          className="grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
-          aria-busy="true"
-          aria-label="Loading verification queue"
-        >
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} />
-          ))}
-        </div>
-      ) : list.length === 0 ? (
-        <section
-          aria-label="Empty queue"
-          className="rounded-2xl bg-white border border-ink/10 p-12 text-center shadow-sm"
-        >
-          <div className="mx-auto w-16 h-16 rounded-full bg-sage/10 flex items-center justify-center text-sage mb-4">
-            <ClipboardCheck size={30} aria-hidden="true" />
-          </div>
-          <h2 className="font-display text-xl font-semibold text-ink mb-2">
-            All caught up
-          </h2>
-          <p className="text-ink/60 max-w-md mx-auto">
-            Nothing waiting on you right now. Check back later or head to
-            complaints if anything needs triage.
-          </p>
-        </section>
+        <div className="space-y-3">{Array.from({length:3}).map((_,i) => <div key={i} className="card h-24 animate-pulse bg-slate-100" />)}</div>
+      ) : pgs.length === 0 ? (
+        <EmptyState title="No pending verifications" description="All submitted PGs have been reviewed." icon="✅" />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-12 min-h-[70vh]">
-          <div
-            className={`lg:col-span-5 xl:col-span-4 space-y-5 ${
-              panelMobileOpen ? 'hidden lg:block' : ''
-            }`}
-            aria-label="Pending queue"
-          >
-            <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-1">
-              {keytagList.map((pg) => {
-                const isSelected = selectedId === pg.id;
-                return (
-                  <div
-                    key={pg.id}
-                    className={`transition-all duration-150 ease-out motion-reduce:transition-none ${
-                      isSelected
-                        ? 'ring-2 ring-indigo ring-offset-2 ring-offset-sand rounded-2xl'
-                        : ''
-                    }`}
-                  >
-                    <PGKeytagCard
-                      pg={pg}
-                      onClick={() => {
-                        setSelectedId(pg.id);
-                        setPanelMobileOpen(true);
-                      }}
-                    />
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+          <div className="lg:col-span-2 space-y-3 max-h-[calc(100vh-12rem)] overflow-y-auto pr-1">
+            {pgs.map((pg) => (
+              <button key={pg._id} onClick={() => setSelected(pg)} className={`w-full card p-4 text-left hover:shadow-card transition ${selected?._id === pg._id ? 'ring-2 ring-brand-500' : ''}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-semibold">{pg.name}</div>
+                    <div className="text-xs text-slate-500 mt-0.5 line-clamp-2">{pg.address}</div>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span className="badge bg-brand-50 text-brand-700 capitalize">{pg.genderPreference}</span>
+                      <span className="text-sm font-semibold text-slate-700">₹{pg.pricePerMonth.toLocaleString()}</span>
+                      <RatingStars rating={null} />
+                    </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold">
+                    {(pg.ownerId?.userId?.name || 'O')[0]}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{pg.ownerId?.userId?.name}</div>
+                    <div className="text-xs text-slate-500 truncate">{pg.ownerId?.userId?.email}</div>
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
 
-          <div
-            className={`lg:col-span-7 xl:col-span-8 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] ${
-              panelMobileOpen ? '' : 'hidden lg:block'
-            }`}
-          >
-            <VerificationReviewPanel
-              pg={selected}
-              onClose={
-                panelMobileOpen
-                  ? () => setPanelMobileOpen(false)
-                  : undefined
-              }
-              onApprove={handleApprove}
-              onReject={handleReject}
-              approving={approving}
-              rejecting={rejecting}
-              rejectionOpen={rejectionOpen}
-              setRejectionOpen={(v) => {
-                setRejectionOpen(v);
-                if (!v) {
-                  setRejectionError(undefined);
-                  setRejectionReason('');
-                }
-              }}
-              rejectionReason={rejectionReason}
-              setRejectionReason={(v) => {
-                setRejectionReason(v);
-                if (rejectionError && v.trim().length >= 10) {
-                  setRejectionError(undefined);
-                }
-              }}
-              rejectionError={rejectionError}
-            />
+          <div className="lg:col-span-3">
+            {!selected ? (
+              <div className="card p-12 text-center text-slate-500">
+                <div className="text-5xl mb-4">👈</div>
+                Select a PG from the left to review.
+              </div>
+            ) : (
+              <div className="card p-6 space-y-5 max-h-[calc(100vh-12rem)] overflow-y-auto">
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold">{selected.name}</h2>
+                      <p className="text-sm text-slate-500 mt-0.5">{selected.address}, {selected.city}</p>
+                    </div>
+                    <span className="badge bg-amber-50 text-amber-700">Pending review</span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-4 gap-4">
+                    <div><div className="text-xs text-slate-500">Rent</div><div className="font-semibold">₹{selected.pricePerMonth.toLocaleString()}/mo</div></div>
+                    <div><div className="text-xs text-slate-500">Deposit</div><div className="font-semibold">₹{selected.securityDeposit.toLocaleString()}</div></div>
+                    <div><div className="text-xs text-slate-500">Rooms</div><div className="font-semibold">{selected.availableRooms}/{selected.totalRooms}</div></div>
+                    <div><div className="text-xs text-slate-500">Gender</div><div className="font-semibold capitalize">{selected.genderPreference}</div></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Amenities</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {(selected.amenities || []).map((a: any) => <span key={a._id} className="badge bg-slate-50 text-slate-700 border border-slate-200">{a.name}</span>)}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Owner</h4>
+                  <div className="p-4 bg-surface-50 rounded-lg flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-semibold flex items-center justify-center">{(selected.ownerId?.userId?.name || 'O')[0]}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold truncate">{selected.ownerId?.userId?.name}</div>
+                      <div className="text-xs text-slate-500 truncate">{selected.ownerId?.userId?.email} · {selected.ownerId?.userId?.phone}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Location</h4>
+                  <div className="h-64 rounded-lg overflow-hidden border border-slate-200">
+                    <MapContainer center={[selected.location.coordinates[1], selected.location.coordinates[0]]} zoom={16}>
+                      <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <Marker position={[selected.location.coordinates[1], selected.location.coordinates[0]]} icon={pinIcon} />
+                    </MapContainer>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2 sticky bottom-0 bg-white">
+                  <button onClick={() => verify(false)} disabled={acting} className="btn-danger flex-1">Reject</button>
+                  <button onClick={() => verify(true)} disabled={acting} className="btn-primary flex-1">{acting ? 'Processing...' : '✓ Approve & Verify'}</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

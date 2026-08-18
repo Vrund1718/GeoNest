@@ -1,30 +1,25 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
-export type AmenityCategory = 'SAFETY' | 'CONNECTIVITY' | 'FOOD' | 'LIFESTYLE' | 'LAUNDRY' | 'OTHER';
+export type AmenityCategory = 'room' | 'kitchen' | 'washroom' | 'common' | 'security' | 'other';
 
 export interface IAmenity extends Document {
   name: string;
   category: AmenityCategory;
-  iconKey: string;
-  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const AmenitySchema: Schema = new Schema(
   {
-    name: { type: String, required: true, unique: true },
+    name: { type: String, required: true, unique: true, trim: true },
     category: {
       type: String,
-      enum: ['SAFETY', 'CONNECTIVITY', 'FOOD', 'LIFESTYLE', 'LAUNDRY', 'OTHER'],
+      enum: ['room', 'kitchen', 'washroom', 'common', 'security', 'other'],
       required: true,
+      default: 'other',
     },
-    iconKey: { type: String, required: true },
-    isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
-
-AmenitySchema.index({ name: 1 }, { unique: true });
 
 export default mongoose.model<IAmenity>('Amenity', AmenitySchema);

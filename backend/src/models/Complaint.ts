@@ -1,15 +1,14 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
-export type ComplaintStatus = 'REQUESTED' | 'IN_PROGRESS' | 'RESOLVED' | 'REJECTED';
-export type ComplaintType = 'MAINTENANCE' | 'CLEANLINESS' | 'SAFETY' | 'BILLING' | 'OTHER';
+export type ComplaintType = 'hygiene' | 'noise' | 'safety' | 'staff' | 'amenity' | 'other';
+export type ComplaintStatus = 'open' | 'in_progress' | 'resolved';
 
 export interface IComplaint extends Document {
-  userId: Types.ObjectId;
-  pgId?: Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  pgId: mongoose.Types.ObjectId;
   type: ComplaintType;
   description: string;
   status: ComplaintStatus;
-  adminNote?: string;
   resolvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -18,27 +17,23 @@ export interface IComplaint extends Document {
 const ComplaintSchema: Schema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    pgId: { type: Schema.Types.ObjectId, ref: 'PGListing', index: true },
+    pgId: { type: Schema.Types.ObjectId, ref: 'PGListing', required: true, index: true },
     type: {
       type: String,
-      enum: ['MAINTENANCE', 'CLEANLINESS', 'SAFETY', 'BILLING', 'OTHER'],
+      enum: ['hygiene', 'noise', 'safety', 'staff', 'amenity', 'other'],
       required: true,
     },
-    description: { type: String, required: true },
+    description: { type: String, required: true, trim: true },
     status: {
       type: String,
-      enum: ['REQUESTED', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'],
+      enum: ['open', 'in_progress', 'resolved'],
       required: true,
-      default: 'REQUESTED',
+      default: 'open',
       index: true,
     },
-    adminNote: { type: String },
     resolvedAt: { type: Date },
   },
   { timestamps: true }
 );
-
-ComplaintSchema.index({ status: 1 });
-ComplaintSchema.index({ pgId: 1 });
 
 export default mongoose.model<IComplaint>('Complaint', ComplaintSchema);
