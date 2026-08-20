@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../../lib/api';
 import { Amenity, Complaint, Image, NearbyPlace, PGListing, Review } from '../../types';
@@ -33,6 +33,14 @@ export const PGDetailsPage: React.FC = () => {
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [complaint, setComplaint] = useState({ type: 'other' as any, description: '' });
   const [reviewForm, setReviewForm] = useState({ rating: 5, text: '' });
+  const [indiaGeoJson, setIndiaGeoJson] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('https://raw.githubusercontent.com/AbhinavSwami28/india-official-geojson/main/india-states-simplified.geojson')
+      .then(res => res.json())
+      .then(data => setIndiaGeoJson(data))
+      .catch(() => {});
+  }, []);
 
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2500); };
 
@@ -188,8 +196,15 @@ export const PGDetailsPage: React.FC = () => {
           <div className="card p-5">
             <h3 className="font-semibold mb-4">Location</h3>
             <div className="h-72 rounded-lg overflow-hidden border border-ink/15">
-              <MapContainer center={[lat, lng]} zoom={15} scrollWheelZoom>
-                <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <MapContainer center={[lat, lng]} zoom={15} scrollWheelZoom={false} className="h-full w-full">
+                <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                {indiaGeoJson && (
+                  <GeoJSON 
+                    data={indiaGeoJson} 
+                    style={{ color: '#475569', weight: 1.5, fillOpacity: 0, dashArray: '3' }}
+                    interactive={false}
+                  />
+                )}
                 <Marker position={[lat, lng]} icon={pinIcon} />
               </MapContainer>
             </div>

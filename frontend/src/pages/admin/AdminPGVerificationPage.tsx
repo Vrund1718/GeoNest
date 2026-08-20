@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../lib/api';
 import { EmptyState, PageHeader, RatingStars } from '../../components/shared';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 
 const pinIcon = L.divIcon({ className: '', iconSize: [30,30], iconAnchor: [15,30],
@@ -12,6 +12,14 @@ export const AdminPGVerificationPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
   const [acting, setActing] = useState(false);
+  const [indiaGeoJson, setIndiaGeoJson] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('https://raw.githubusercontent.com/AbhinavSwami28/india-official-geojson/main/india-states-simplified.geojson')
+      .then(res => res.json())
+      .then(data => setIndiaGeoJson(data))
+      .catch(() => {});
+  }, []);
 
   const load = async () => {
     try { const { data } = await api.get('/admin/pg/pending'); setPgs(data.pgs || []); } catch {}
@@ -112,7 +120,14 @@ export const AdminPGVerificationPage: React.FC = () => {
                   <h4 className="font-semibold mb-2">Location</h4>
                   <div className="h-64 rounded-lg overflow-hidden border border-slate-200">
                     <MapContainer center={[selected.location.coordinates[1], selected.location.coordinates[0]]} zoom={16}>
-                      <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      {indiaGeoJson && (
+                        <GeoJSON 
+                          data={indiaGeoJson} 
+                          style={{ color: '#475569', weight: 1.5, fillOpacity: 0, dashArray: '3' }}
+                          interactive={false}
+                        />
+                      )}
                       <Marker position={[selected.location.coordinates[1], selected.location.coordinates[0]]} icon={pinIcon} />
                     </MapContainer>
                   </div>

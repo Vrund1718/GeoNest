@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../../lib/api';
 import { PageHeader } from '../../components/shared';
@@ -38,6 +38,14 @@ export const OwnerPGFormPage: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [images, setImages] = useState<any[]>([]);
+  const [indiaGeoJson, setIndiaGeoJson] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('https://raw.githubusercontent.com/AbhinavSwami28/india-official-geojson/main/india-states-simplified.geojson')
+      .then(res => res.json())
+      .then(data => setIndiaGeoJson(data))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!editMode) return;
@@ -214,9 +222,16 @@ export const OwnerPGFormPage: React.FC = () => {
               </div>
             </div>
             <p className="text-xs text-ink/55">Click on the map to drop the pin at your PG location.</p>
-            <div className="h-80 rounded-lg overflow-hidden border border-ink/15">
-              <MapContainer center={markerPos} zoom={15} scrollWheelZoom>
-                <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <div className="h-80 w-full rounded-xl overflow-hidden border border-ink/15 shadow-sm">
+              <MapContainer center={markerPos} zoom={13} scrollWheelZoom className="h-full w-full">
+                <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                {indiaGeoJson && (
+                  <GeoJSON 
+                    data={indiaGeoJson} 
+                    style={{ color: '#475569', weight: 1.5, fillOpacity: 0, dashArray: '3' }}
+                    interactive={false}
+                  />
+                )}
                 <LocationPicker onPick={(lat, lng) => { setMarkerPos([lat, lng]); setForm({ ...form, lat, lng }); }} />
                 <Marker position={markerPos} icon={pinIcon} />
               </MapContainer>

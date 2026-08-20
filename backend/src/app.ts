@@ -23,7 +23,8 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        'img-src': ["'self'", 'data:', 'https://images.unsplash.com', 'https://res.cloudinary.com'],
+        'img-src': ["'self'", 'data:', 'https://*.tile.openstreetmap.org', 'https://images.unsplash.com', 'https://res.cloudinary.com'],
+        'connect-src': ["'self'", 'https://raw.githubusercontent.com'],
       },
     },
   })

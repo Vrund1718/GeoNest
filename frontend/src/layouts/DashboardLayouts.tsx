@@ -31,11 +31,26 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
     return () => clearInterval(t);
   }, []);
 
-  const markRead = async (id: string) => {
+  const markRead = async (id: string, type?: string) => {
     try {
       await api.put(`/notifications/${id}/read`);
       setNotifications((p) => p.map(n => n._id === id ? { ...n, isRead: true } : n));
       setUnreadCount((c) => Math.max(0, c - 1));
+
+      // Redirection logic
+      if (type) {
+        const isStudent = user?.role === 'student';
+        const isOwner = user?.role === 'owner';
+
+        if (type.startsWith('booking')) {
+          nav(isStudent ? '/student/bookings' : '/owner/bookings');
+        } else if (type === 'pg_verified') {
+          nav(isStudent ? '/student/search' : '/owner');
+        } else if (type === 'complaint_status') {
+          nav(isStudent ? '/student/complaints' : '/owner/complaints');
+        }
+        setShowNotif(false);
+      }
     } catch {}
   };
 
@@ -74,7 +89,14 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
             );
           })}
         </nav>
-        <div className="p-3 border-t border-ink/10">
+        <div className="p-3 space-y-2 border-t border-ink/10">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-ink/70 hover:text-coral hover:bg-coral/5 transition-all group"
+          >
+            <span className="text-xl group-hover:scale-110 transition-transform">🚪</span>
+            <span className="font-medium">Logout</span>
+          </button>
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-sand-50 ring-1 ring-ink/10">
             <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-semibold grid place-items-center text-sm shadow-sm">{initials}</div>
             <div className="min-w-0 flex-1">
@@ -112,7 +134,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
                   ) : notifications.slice(0, 15).map((n) => (
                     <button
                       key={n._id}
-                      onClick={() => markRead(n._id)}
+                      onClick={() => markRead(n._id, n.type)}
                       className={`w-full text-left p-4 border-b border-ink/10 hover:bg-sand-50 transition ${!n.isRead ? 'bg-indigo-50/40' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -129,7 +151,6 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
             )}
           </div>
           <Link to={user?.role === 'student' ? '/student/profile' : '/profile'} className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 font-semibold grid place-items-center text-sm hover:bg-indigo-200 transition shadow-sm">{initials}</Link>
-          <button onClick={handleLogout} className="btn-ghost" title="Logout" aria-label="Logout">🚪</button>
         </header>
         <main className="flex-1 p-6 overflow-auto">
           <Outlet />

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../../lib/api';
 import { PGListing } from '../../types';
@@ -23,6 +23,14 @@ export const MapPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [geoName, setGeoName] = useState('');
+  const [indiaGeoJson, setIndiaGeoJson] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('https://raw.githubusercontent.com/AbhinavSwami28/india-official-geojson/main/india-states-simplified.geojson')
+      .then(res => res.json())
+      .then(data => setIndiaGeoJson(data))
+      .catch(() => {});
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -78,7 +86,14 @@ export const MapPage: React.FC = () => {
           📍 {geoName || query} · {results.length} PGs
         </div>
         <MapContainer center={center} zoom={14} className="h-full min-h-[500px] shadow-card border border-slate-200">
-          <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          {indiaGeoJson && (
+            <GeoJSON 
+              data={indiaGeoJson} 
+              style={{ color: '#475569', weight: 1.5, fillOpacity: 0, dashArray: '3' }}
+              interactive={false}
+            />
+          )}
           <Marker position={center} icon={customIcon('#16a34a')}>
             <Popup><div className="text-sm"><strong>{query}</strong></div><div className="text-xs text-slate-500 mt-1">{geoName}</div></Popup>
           </Marker>

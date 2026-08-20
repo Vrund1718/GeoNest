@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { Notification } from '../../types';
 import { EmptyState, PageHeader } from '../../components/shared';
+import { useAuth } from '../../context/AuthContext';
 
 const iconFor = (t: Notification['type']) =>
   t === 'booking_request' ? '📋' :
@@ -11,6 +13,8 @@ const iconFor = (t: Notification['type']) =>
   t === 'complaint_status' ? '⚠️' : '🔔';
 
 export const NotificationsPage: React.FC = () => {
+  const nav = useNavigate();
+  const { user } = useAuth();
   const [items, setItems] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -31,6 +35,22 @@ export const NotificationsPage: React.FC = () => {
     load();
   };
 
+  const handleNotifClick = async (n: Notification) => {
+    if (!n.isRead) {
+      await api.put(`/notifications/${n._id}/read`);
+      load();
+    }
+
+    const isStudent = user?.role === 'student';
+    if (n.type.startsWith('booking')) {
+      nav(isStudent ? '/student/bookings' : '/owner/bookings');
+    } else if (n.type === 'pg_verified') {
+      nav(isStudent ? '/student/search' : '/owner');
+    } else if (n.type === 'complaint_status') {
+      nav(isStudent ? '/student/complaints' : '/owner/complaints');
+    }
+  };
+
   return (
     <div>
       <PageHeader title="Notifications" subtitle={`${unread} unread`} actions={<button onClick={markAll} disabled={unread === 0} className="btn-secondary text-sm">Mark all read</button>} />
@@ -43,7 +63,7 @@ export const NotificationsPage: React.FC = () => {
           {items.map((n) => (
             <button
               key={n._id}
-              onClick={async () => { if (!n.isRead) { await api.put(`/notifications/${n._id}/read`); load(); } }}
+              onClick={() => handleNotifClick(n)}
               className={`w-full text-left p-4 flex gap-4 hover:bg-surface-50 transition ${!n.isRead ? 'bg-brand-50/30' : ''}`}
             >
               <div className="w-10 h-10 rounded-full bg-surface-100 flex items-center justify-center text-xl shrink-0">{iconFor(n.type)}</div>
