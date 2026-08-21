@@ -32,8 +32,6 @@ router.get('/search', async (req, res) => {
 
     const baseMatch: any = {
       status: 'active',
-      availableRooms: { $gt: 0 },
-      isVerified: true,
     };
 
     let centerLat = 23.0225;

@@ -72,8 +72,6 @@ export const getRecommendations = async (userId: string | mongoose.Types.ObjectI
 
   const candidates = await PGListing.find({
     status: 'active',
-    isVerified: true,
-    availableRooms: { $gt: 0 },
   }).populate('amenities');
 
   if (candidates.length === 0) return [];
