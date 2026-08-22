@@ -31,27 +31,62 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
     return () => clearInterval(t);
   }, []);
 
-  const markRead = async (id: string, type?: string) => {
+  const markRead = async (n: Notification) => {
     try {
-      await api.put(`/notifications/${id}/read`);
-      setNotifications((p) => p.map(n => n._id === id ? { ...n, isRead: true } : n));
-      setUnreadCount((c) => Math.max(0, c - 1));
+      if (!n.isRead) {
+        await api.put(`/notifications/${n._id}/read`);
+        setNotifications((p) => p.map(item => item._id === n._id ? { ...item, isRead: true } : item));
+        setUnreadCount((c) => Math.max(0, c - 1));
+      }
 
       // Redirection logic
-      if (type) {
+      let target = n.actionUrl;
+
+      if (!target) {
         const isStudent = user?.role === 'student';
         const isOwner = user?.role === 'owner';
 
-        if (type.startsWith('booking')) {
-          nav(isStudent ? '/student/bookings' : '/owner/bookings');
-        } else if (type === 'pg_verified') {
-          nav(isStudent ? '/student/search' : '/owner');
-        } else if (type === 'complaint_status') {
-          nav(isStudent ? '/student/complaints' : '/owner/complaints');
+        switch (n.type) {
+          case 'booking_request':
+          case 'booking_confirm':
+          case 'booking_cancel':
+            target = isStudent 
+              ? (n.referenceId ? `/student/bookings#${n.referenceId}` : '/student/bookings')
+              : isOwner 
+                ? (n.referenceId ? `/owner/bookings#${n.referenceId}` : '/owner/bookings')
+                : '/student/bookings';
+            break;
+          case 'pg_verified':
+          case 'pg_rejected':
+            target = n.referenceId 
+              ? `/pg/${n.referenceId}` 
+              : (isOwner ? '/owner' : '/student/search');
+            break;
+          case 'complaint_status':
+            target = isStudent 
+              ? (n.referenceId ? `/student/complaints#${n.referenceId}` : '/student/complaints')
+              : isOwner 
+                ? (n.referenceId ? `/owner/complaints#${n.referenceId}` : '/owner/complaints')
+                : '/student/complaints';
+            break;
+          case 'new_review':
+            target = n.referenceId ? `/pg/${n.referenceId}#reviews` : '/student/search';
+            break;
+          case 'new_message':
+            target = n.referenceId ? `/messages/${n.referenceId}` : '/';
+            break;
+          default:
+            target = undefined; // Don't navigate for general or unknown
         }
-        setShowNotif(false);
       }
-    } catch {}
+
+      if (target) {
+        nav(target);
+      }
+      setShowNotif(false);
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
   };
 
   const handleLogout = async () => {
@@ -134,7 +169,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
                   ) : notifications.slice(0, 15).map((n) => (
                     <button
                       key={n._id}
-                      onClick={() => markRead(n._id, n.type)}
+                      onClick={() => markRead(n)}
                       className={`w-full text-left p-4 border-b border-ink/10 hover:bg-sand-50 transition ${!n.isRead ? 'bg-indigo-50/40' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -162,6 +197,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
 
 const studentNav = [
   { path: '/student', label: 'Dashboard', icon: '🏠' },
+  { path: '/student/my-pg', label: 'My PG', icon: '🏢' },
   { path: '/student/search', label: 'Search PGs', icon: '🔍' },
   { path: '/student/map', label: 'Map View', icon: '🗺️' },
   { path: '/student/bookings', label: 'Bookings', icon: '📅' },

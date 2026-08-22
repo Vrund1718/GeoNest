@@ -66,6 +66,12 @@ export interface Booking {
   status: 'requested' | 'confirmed' | 'cancelled' | 'completed';
   startDate: string;
   endDate: string;
+  renewalHistory?: {
+    startDate: string;
+    endDate: string;
+    status: 'pending' | 'approved' | 'rejected';
+    createdAt: string;
+  }[];
   createdAt: string;
 }
 
@@ -79,20 +85,52 @@ export interface Complaint {
   _id: string;
   userId: { _id: string; name: string; email: string };
   pgId: { _id: string; name: string; city: string };
-  type: 'hygiene' | 'noise' | 'safety' | 'staff' | 'amenity' | 'other';
+  type: 'hygiene' | 'noise' | 'safety' | 'staff' | 'amenity' | 'electrician' | 'plumber' | 'wifi' | 'furniture' | 'water' | 'security' | 'pest_control' | 'food' | 'other';
   description: string;
-  status: 'open' | 'in_progress' | 'resolved';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  photoUrls: string[];
+  responses: {
+    role: 'student' | 'owner' | 'admin';
+    message: string;
+    createdAt: string;
+  }[];
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
   resolvedAt?: string;
+  createdAt: string;
+}
+
+export interface Payment {
+  _id: string;
+  bookingId: string;
+  userId: string;
+  amount: number;
+  status: 'pending' | 'success' | 'failed';
+  paymentMethod: string;
+  transactionId?: string;
+  receiptUrl?: string;
   createdAt: string;
 }
 
 export interface Notification {
   _id: string;
   userId: string;
-  type: 'booking_request' | 'booking_confirm' | 'booking_cancel' | 'pg_verified' | 'complaint_status' | 'general';
+  type:
+    | 'booking_request'
+    | 'booking_confirm'
+    | 'booking_cancel'
+    | 'pg_verified'
+    | 'pg_rejected'
+    | 'complaint_status'
+    | 'new_review'
+    | 'new_message'
+    | 'payment_received'
+    | 'general';
   title: string;
   body: string;
   isRead: boolean;
+  referenceType?: 'pg' | 'booking' | 'review' | 'message' | 'complaint';
+  referenceId?: string;
+  actionUrl?: string;
   createdAt: string;
 }
 

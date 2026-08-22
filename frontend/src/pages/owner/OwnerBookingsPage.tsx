@@ -50,7 +50,7 @@ export const OwnerBookingsPage: React.FC = () => {
               </tr></thead>
               <tbody className="divide-y divide-slate-100">
                 {items.map((b) => (
-                  <tr key={b._id} className="hover:bg-surface-50">
+                  <tr key={b._id} id={`booking-${b._id}`} className="hover:bg-surface-50 transition-all duration-500">
                     <td className="table-cell">
                       <div>
                         <div className="font-medium text-slate-800">{(b.userId as any).name}</div>

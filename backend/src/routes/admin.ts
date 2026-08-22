@@ -47,11 +47,13 @@ router.put('/pg/:id/verify', async (req: AuthRequest, res) => {
     if (ownerUserId) {
       await sendNotification(
         ownerUserId,
-        'pg_verified',
+        verified ? 'pg_verified' : 'pg_rejected',
         verified ? 'PG Verified!' : 'PG Verification Rejected',
         verified
           ? `Your PG "${pg.name}" has been verified and is now live.`
-          : `Your PG "${pg.name}" was not approved. Please contact support.`
+          : `Your PG "${pg.name}" was not approved. Please contact support.`,
+        { type: 'pg', id: pg._id },
+        verified ? `/pg/${pg._id}` : undefined
       );
     }
 
@@ -93,7 +95,9 @@ router.put('/complaints/:id', async (req: AuthRequest, res) => {
           complaint.userId,
           'complaint_status',
           'Complaint Status Updated',
-          `Your complaint has been updated to "${status}".`
+          `Your complaint has been updated to "${status}".`,
+          { type: 'complaint', id: complaint._id },
+          `/student/complaints#${complaint._id}`
         );
       }
     }

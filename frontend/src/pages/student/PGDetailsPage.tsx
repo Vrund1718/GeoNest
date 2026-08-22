@@ -54,7 +54,13 @@ export const PGDetailsPage: React.FC = () => {
       setReviews(data.reviews || []);
       setAvgRating(data.averageRating);
       setNearby(data.nearbyPlaces || {});
-    } catch (e: any) { showToast(e.response?.data?.error || 'Failed to load'); }
+    } catch (e: any) { 
+      const errorMsg = e.response?.data?.error || 'Failed to load';
+      showToast(errorMsg);
+      if (e.response?.status === 404) {
+        setTimeout(() => nav(user?.role === 'owner' ? '/owner' : '/student/search'), 1500);
+      }
+    }
     setLoading(false);
   }, [id]);
 

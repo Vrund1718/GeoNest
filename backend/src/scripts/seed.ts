@@ -11,6 +11,7 @@ import Wishlist from '../models/Wishlist';
 import Complaint from '../models/Complaint';
 import Notification from '../models/Notification';
 import NearbyPlace from '../models/NearbyPlace';
+import Payment from '../models/Payment';
 import mongoose from 'mongoose';
 
 const sampleImages = [
@@ -289,6 +290,20 @@ const seed = async () => {
       status: statuses[i % statuses.length],
       startDate: start,
       endDate: end,
+      renewalHistory: [],
+    });
+  }
+
+  // Create some mock payments
+  const confirmedBookings = await Booking.find({ status: 'confirmed' });
+  for (const b of confirmedBookings) {
+    await Payment.create({
+      bookingId: b._id,
+      userId: b.userId,
+      amount: 9500,
+      status: 'success',
+      paymentMethod: 'UPI',
+      transactionId: 'TXN_' + Math.random().toString(36).substr(2, 9).toUpperCase(),
     });
   }
 
@@ -334,11 +349,52 @@ const seed = async () => {
     }
   }
 
+  const saffron = pgs.find(p => p.name === 'Saffron Girls Hostel');
+  const satellite = pgs.find(p => p.name === 'Satellite Paradise');
+  const royal = pgs.find(p => p.name === 'Royal Paying Guest');
+  const nirma = pgs.find(p => p.name === 'Nirma Residency Boys PG');
+
   await Notification.create([
-    { userId: students[0]._id, type: 'booking_confirm', title: 'Booking Confirmed!', body: 'Your booking for Saffron Girls Hostel is confirmed.', isRead: false },
-    { userId: students[0]._id, type: 'pg_verified', title: 'New Verified PG', body: 'Satellite Paradise has been verified and is now live!', isRead: true },
-    { userId: students[1]._id, type: 'booking_request', title: 'Booking Request Received', body: 'We received your booking request at Royal Paying Guest.', isRead: false },
-    { userId: ownerUserDocs[0]._id, type: 'booking_request', title: 'New Booking Request', body: 'You have a new booking request for Nirma Residency Boys PG.', isRead: false },
+    { 
+      userId: students[0]._id, 
+      type: 'booking_confirm', 
+      title: 'Booking Confirmed!', 
+      body: 'Your booking for Saffron Girls Hostel is confirmed.', 
+      isRead: false,
+      referenceType: 'pg',
+      referenceId: saffron?._id,
+      actionUrl: saffron ? `/pg/${saffron._id}` : undefined
+    },
+    { 
+      userId: students[0]._id, 
+      type: 'pg_verified', 
+      title: 'New Verified PG', 
+      body: 'Satellite Paradise has been verified and is now live!', 
+      isRead: true,
+      referenceType: 'pg',
+      referenceId: satellite?._id,
+      actionUrl: satellite ? `/pg/${satellite._id}` : undefined
+    },
+    { 
+      userId: students[1]._id, 
+      type: 'booking_request', 
+      title: 'Booking Request Received', 
+      body: 'We received your booking request at Royal Paying Guest.', 
+      isRead: false,
+      referenceType: 'pg',
+      referenceId: royal?._id,
+      actionUrl: royal ? `/pg/${royal._id}` : undefined
+    },
+    { 
+      userId: ownerUserDocs[0]._id, 
+      type: 'booking_request', 
+      title: 'New Booking Request', 
+      body: 'You have a new booking request for Nirma Residency Boys PG.', 
+      isRead: false,
+      referenceType: 'pg',
+      referenceId: nirma?._id,
+      actionUrl: nirma ? `/pg/${nirma._id}` : undefined
+    },
   ]);
 
   console.log('Seed complete.');

@@ -233,7 +233,14 @@ router.put('/bookings/:id/status', async (req: AuthRequest, res) => {
         ? `Your booking for "${(booking.pgId as any)?.name || 'your PG'}" has been cancelled.`
         : `Your booking status is now ${status}.`;
       const notifType = status === 'confirmed' ? 'booking_confirm' : status === 'cancelled' ? 'booking_cancel' : 'general';
-      await sendNotification(booking.userId, notifType as any, title, msg);
+      await sendNotification(
+        booking.userId,
+        notifType as any,
+        title,
+        msg,
+        { type: 'booking', id: booking._id },
+        `/student/bookings#${booking._id}`
+      );
     }
     return res.json({ booking });
   } catch (err) {

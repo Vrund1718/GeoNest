@@ -139,6 +139,74 @@ router.get('/search', async (req, res) => {
   }
 });
 
+router.get('/suggestions', async (req, res) => {
+  try {
+    const q = req.query.q as string;
+    if (!q || q.trim().length === 0) {
+      return res.json({ suggestions: [] });
+    }
+
+    const searchRegex = new RegExp(q.trim(), 'i');
+
+    const pipeline: any[] = [
+      {
+        $match: {
+          status: 'active',
+          $or: [
+            { name: searchRegex },
+            { city: searchRegex },
+            { address: searchRegex },
+            { collegeName: searchRegex },
+          ],
+        },
+      },
+      { $limit: 8 },
+      {
+        $lookup: {
+          from: 'images',
+          localField: '_id',
+          foreignField: 'pgId',
+          as: 'images',
+          pipeline: [{ $sort: { isPrimary: -1, createdAt: 1 } }, { $limit: 1 }],
+        },
+      },
+      {
+        $lookup: {
+          from: 'reviews',
+          localField: '_id',
+          foreignField: 'pgId',
+          as: 'reviews',
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          city: 1,
+          address: 1,
+          collegeName: 1,
+          pricePerMonth: 1,
+          primaryImage: { $arrayElemAt: ['$images.url', 0] },
+          averageRating: {
+            $cond: {
+              if: { $gt: [{ $size: '$reviews' }, 0] },
+              then: { $avg: '$reviews.rating' },
+              else: null,
+            },
+          },
+        },
+      },
+    ];
+
+    const suggestions = await PGListing.aggregate(pipeline);
+
+    return res.json({ suggestions });
+  } catch (err) {
+    console.error('[Search Suggestions Error]', err);
+    return res.status(500).json({ error: 'Failed to fetch suggestions' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const id = req.params.id;
@@ -223,7 +291,9 @@ router.post('/:id/book', requireAuth, validate(bookingSchema), async (req: AuthR
       req.user!._id,
       'booking_request',
       'Booking Request Sent',
-      `Your booking for "${pg.name}" has been submitted.`
+      `Your booking for "${pg.name}" has been submitted.`,
+      { type: 'booking', id: booking._id },
+      `/student/bookings#${booking._id}`
     );
 
     const ownerUserId = (pg.ownerId as any)?.userId;
@@ -232,7 +302,9 @@ router.post('/:id/book', requireAuth, validate(bookingSchema), async (req: AuthR
         ownerUserId,
         'booking_request',
         'New Booking Request',
-        `${req.user!.name} has requested to book "${pg.name}".`
+        `${req.user!.name} has requested to book "${pg.name}".`,
+        { type: 'booking', id: booking._id },
+        `/owner/bookings#${booking._id}`
       );
     }
 

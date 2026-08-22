@@ -1,3 +1,6 @@
+import dns from 'dns';
+dns.setServers(['8.8.8.8']);
+
 import app from './app';
 import { config } from './config';
 import { connectDB } from './config/db';
@@ -12,7 +15,7 @@ const start = async () => {
       `(accountSid=${Boolean(config.twilio.accountSid)}, authToken=${Boolean(config.twilio.authToken)}, verifyServiceSid=${Boolean(config.twilio.verifyServiceSid)})`
   );
 
-  app.listen(config.port,"0.0.0.0", () => {
+  app.listen(config.port, "0.0.0.0", () => {
     console.log(`Server running on port ${config.port} in ${config.nodeEnv} mode`);
     console.log(`Frontend origin: ${config.frontendOrigin}`);
   });

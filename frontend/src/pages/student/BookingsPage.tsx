@@ -24,6 +24,18 @@ export const BookingsPage: React.FC = () => {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    if (!loading && window.location.hash) {
+      const id = window.location.hash.substring(1);
+      const el = document.getElementById(`booking-${id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2'), 3000);
+      }
+    }
+  }, [loading]);
+
   const cancel = async (id: string) => {
     try {
       await api.put(`/bookings/${id}/status`, { status: 'cancelled' });
@@ -48,13 +60,13 @@ export const BookingsPage: React.FC = () => {
                 <th className="table-header">Check-in</th>
                 <th className="table-header">Check-out</th>
                 <th className="table-header">Booked on</th>
-                <th className="table-header"></th>
+                <th className="table-header text-right">Actions</th>
               </tr></thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="bg-white divide-y divide-slate-100">
                 {bookings.map((b) => {
                   const pg = b.pgId as any;
                   return (
-                    <tr key={b._id} className="hover:bg-surface-50">
+                    <tr key={b._id} id={`booking-${b._id}`} className="hover:bg-surface-50 transition-all duration-500">
                       <td className="table-cell">
                         <Link to={`/pg/${pg?._id || b.pgId}`} className="flex items-center gap-3 hover:text-brand-700">
                           {pg?.primaryImage && <img src={pg.primaryImage} className="w-10 h-10 rounded-md object-cover bg-slate-100" />}

@@ -24,7 +24,7 @@ export const OwnerComplaintsPage: React.FC = () => {
       ) : (
         <div className="card divide-y divide-slate-100">
           {items.map((c) => (
-            <div key={c._id} className="p-5">
+            <div key={c._id} id={`complaint-${c._id}`} className="p-5 transition-all duration-500">
               <div className="flex items-start justify-between gap-4 mb-2">
                 <div>
                   <div className="font-semibold text-slate-800">

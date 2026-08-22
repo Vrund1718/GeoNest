@@ -11,6 +11,7 @@ import { PGDetailsPage } from './pages/student/PGDetailsPage';
 import { BookingsPage } from './pages/student/BookingsPage';
 import { WishlistPage } from './pages/student/WishlistPage';
 import { ComplaintsPage } from './pages/student/ComplaintsPage';
+import { MyPGPage } from './pages/student/MyPGPage';
 import { NotificationsPage } from './pages/student/NotificationsPage';
 import { ProfilePage } from './pages/student/ProfilePage';
 import { OwnerPGListPage } from './pages/owner/OwnerPGListPage';
@@ -56,6 +57,7 @@ const App: React.FC = () => {
           <ProtectedRoute roles={['student']}><StudentDashboardLayout /></ProtectedRoute>
         }>
           <Route index element={<StudentDashboardPage />} />
+          <Route path="my-pg" element={<MyPGPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="map" element={<MapPage />} />
           <Route path="bookings" element={<BookingsPage />} />

@@ -36,18 +36,59 @@ export const NotificationsPage: React.FC = () => {
   };
 
   const handleNotifClick = async (n: Notification) => {
+    // 1. Mark as read immediately in UI
     if (!n.isRead) {
-      await api.put(`/notifications/${n._id}/read`);
-      load();
+      setItems(prev => prev.map(item => item._id === n._id ? { ...item, isRead: true } : item));
+      setUnread(prev => Math.max(0, prev - 1));
+      api.put(`/notifications/${n._id}/read`).catch((err) => {
+        console.error('Failed to mark notification as read:', err);
+      });
     }
 
-    const isStudent = user?.role === 'student';
-    if (n.type.startsWith('booking')) {
-      nav(isStudent ? '/student/bookings' : '/owner/bookings');
-    } else if (n.type === 'pg_verified') {
-      nav(isStudent ? '/student/search' : '/owner');
-    } else if (n.type === 'complaint_status') {
-      nav(isStudent ? '/student/complaints' : '/owner/complaints');
+    // 2. Determine target URL
+    let target = n.actionUrl;
+
+    if (!target) {
+      const isStudent = user?.role === 'student';
+      const isOwner = user?.role === 'owner';
+      
+      switch (n.type) {
+        case 'booking_request':
+        case 'booking_confirm':
+        case 'booking_cancel':
+          target = isStudent 
+            ? (n.referenceId ? `/student/bookings#${n.referenceId}` : '/student/bookings')
+            : isOwner 
+              ? (n.referenceId ? `/owner/bookings#${n.referenceId}` : '/owner/bookings')
+              : '/student/bookings';
+          break;
+        case 'pg_verified':
+        case 'pg_rejected':
+          target = n.referenceId 
+            ? `/pg/${n.referenceId}` 
+            : (isOwner ? '/owner' : `/student/search`);
+          break;
+        case 'complaint_status':
+          target = isStudent 
+            ? (n.referenceId ? `/student/complaints#${n.referenceId}` : '/student/complaints')
+            : isOwner 
+              ? (n.referenceId ? `/owner/complaints#${n.referenceId}` : '/owner/complaints')
+              : '/student/complaints';
+          break;
+        case 'new_review':
+          target = n.referenceId ? `/pg/${n.referenceId}#reviews` : '/student/search';
+          break;
+        case 'new_message':
+          target = n.referenceId ? `/messages/${n.referenceId}` : '/';
+          break;
+        default:
+          target = undefined;
+      }
+    }
+
+    // 3. Navigate
+    if (target) {
+      nav(target);
     }
   };
 

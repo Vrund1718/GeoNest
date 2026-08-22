@@ -2,12 +2,20 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export type BookingStatus = 'requested' | 'confirmed' | 'cancelled' | 'completed';
 
+export interface IRenewalRequest {
+  startDate: Date;
+  endDate: Date;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: Date;
+}
+
 export interface IBooking extends Document {
   pgId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   status: BookingStatus;
   startDate: Date;
   endDate: Date;
+  renewalHistory: IRenewalRequest[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +33,14 @@ const BookingSchema: Schema = new Schema(
     },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
+    renewalHistory: [
+      {
+        startDate: { type: Date, required: true },
+        endDate: { type: Date, required: true },
+        status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

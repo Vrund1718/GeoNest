@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import api from '../../lib/api';
 import { PGCard, EmptyState, RatingStars } from '../../components/shared';
 import { PGListing, SearchFilters } from '../../types';
@@ -21,6 +21,60 @@ export const SearchPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState('Nirma University');
   const [err, setErr] = useState<string | null>(null);
+
+  // Suggestion states
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (searchInput.trim().length === 0) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const fetchSuggestions = async () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      abortControllerRef.current = new AbortController();
+
+      setLoadingSuggestions(true);
+      try {
+        const { data } = await api.get('/pg/suggestions', {
+          params: { q: searchInput },
+          signal: abortControllerRef.current.signal,
+        });
+        setSuggestions(data.suggestions || []);
+        setShowSuggestions(true);
+        setActiveIndex(-1);
+      } catch (e: any) {
+        if (e.name !== 'CanceledError' && e.name !== 'AbortError') {
+          console.error('Suggestions fetch failed', e);
+        }
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchSuggestions, 300);
+    return () => {
+      clearTimeout(debounceTimer);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, [searchInput]);
 
   const runSearch = useCallback(async () => {
     setLoading(true);
@@ -48,7 +102,45 @@ export const SearchPage: React.FC = () => {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSuggestions(false);
     setFilters({ ...filters, query: searchInput.trim() || 'Ahmedabad' });
+  };
+
+  const onSuggestionClick = (s: any) => {
+    setSearchInput(s.name);
+    setShowSuggestions(false);
+    nav(`/pg/${s._id}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter' && activeIndex >= 0) {
+      e.preventDefault();
+      onSuggestionClick(suggestions[activeIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
+
+  const highlightMatch = (text: string, query: string) => {
+    if (!query) return text;
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return (
+      <span>
+        {parts.map((part, i) => 
+          part.toLowerCase() === query.toLowerCase() 
+            ? <strong key={i} className="text-indigo-600">{part}</strong> 
+            : part
+        )}
+      </span>
+    );
   };
 
   const toggleAmenity = (a: string) => setFilters((f) => ({ ...f, amenities: f.amenities.includes(a) ? f.amenities.filter(x => x !== a) : [...f.amenities, a] }));
@@ -62,7 +154,7 @@ export const SearchPage: React.FC = () => {
     <div>
       <div className="card p-4 mb-6">
         <form onSubmit={onSubmit} className="flex flex-col md:flex-row gap-3">
-          <div className="flex-1 relative">
+          <div className="flex-1 relative" ref={searchRef}>
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" aria-hidden="true">🔍</span>
             <input
               type="text"
@@ -70,7 +162,74 @@ export const SearchPage: React.FC = () => {
               placeholder="Search college or city, e.g. Nirma University"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
+              onFocus={() => searchInput.trim() && setShowSuggestions(true)}
+              onKeyDown={handleKeyDown}
             />
+            
+            {showSuggestions && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                {loadingSuggestions ? (
+                  <div className="p-4 text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    Finding suggestions...
+                  </div>
+                ) : suggestions.length > 0 ? (
+                  <div className="max-h-80 overflow-y-auto">
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={s._id}
+                        type="button"
+                        onClick={() => onSuggestionClick(s)}
+                        onMouseEnter={() => setActiveIndex(i)}
+                        className={`w-full text-left p-3 flex items-center gap-3 transition-colors ${i === activeIndex ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-slate-100 shrink-0 overflow-hidden">
+                          {s.primaryImage ? (
+                            <img src={s.primaryImage} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-400">🏠</div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-slate-900 truncate">
+                            {highlightMatch(s.name, searchInput)}
+                          </div>
+                          <div className="text-xs text-slate-500 flex items-center gap-1 truncate">
+                            <span>📍</span>
+                            {highlightMatch(s.city || s.address || '', searchInput)}
+                            {s.collegeName && (
+                              <>
+                                <span className="mx-1">·</span>
+                                {highlightMatch(s.collegeName, searchInput)}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-sm font-semibold text-indigo-600">₹{s.pricePerMonth}</div>
+                          {s.averageRating && (
+                            <div className="text-[10px] text-amber-500 flex items-center justify-end gap-0.5">
+                              <span>⭐</span>
+                              {s.averageRating.toFixed(1)}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                    <button
+                      type="submit"
+                      className="w-full p-2 text-center text-xs font-semibold text-slate-500 bg-slate-50 hover:bg-slate-100 transition-colors border-t border-slate-100"
+                    >
+                      See all results for "{searchInput}"
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-sm text-slate-500">
+                    No PGs found for "{searchInput}"
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="w-full md:w-40">
             <select className="input" value={filters.sortBy} onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}>
