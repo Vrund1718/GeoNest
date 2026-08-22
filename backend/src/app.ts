@@ -92,10 +92,24 @@ const authCredentialLimiter = rateLimit({
   },
 });
 
+export const otpRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown-ip';
+    const phone = (req.body?.phone as string | undefined)?.trim() || '';
+    return phone ? `${ip}:${phone}` : ip;
+  },
+  message: { error: 'Too many OTP requests, try again later.' },
+});
+
 app.get('/healthz', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
 app.use('/auth/signup', authCredentialLimiter);
 app.use('/auth/login', authCredentialLimiter);
+app.use('/auth/send-otp', otpRateLimiter);
 app.use('/auth', authRoutes);
 app.use('/owners', ownerRoutes);
 app.use('/admin', adminRoutes);
@@ -105,6 +119,7 @@ app.use('/recommendations', recLimiter, recRoutes);
 
 app.use('/api/auth/signup', authCredentialLimiter);
 app.use('/api/auth/login', authCredentialLimiter);
+app.use('/api/auth/send-otp', otpRateLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/owners', ownerRoutes);
 app.use('/api/admin', adminRoutes);

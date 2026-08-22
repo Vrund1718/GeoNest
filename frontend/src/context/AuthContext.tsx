@@ -6,12 +6,29 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  signup: (data: { name: string; email: string; phone: string; password: string; role: string }) => Promise<{ ok: boolean; error?: string; errors?: any[] }>;
+  signup: (data: { name: string; email: string; phone: string; password: string; role: string; phoneVerificationToken: string }) => Promise<{ ok: boolean; error?: string; errors?: any[] }>;
+  sendOtp: (phone: string) => Promise<{ ok: boolean; error?: string }>;
+  verifyOtp: (phone: string, code: string) => Promise<{ ok: boolean; verified: boolean; phoneVerificationToken?: string; error?: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+function extractApiError(err: any, fallback: string) {
+  const data = err.response?.data;
+  console.error('[Auth API error]', {
+    status: err.response?.status,
+    body: data,
+    message: err.message,
+  });
+  if (data?.error) return data.error as string;
+  if (Array.isArray(data?.errors)) {
+    return data.errors.map((e: { message?: string }) => e.message).filter(Boolean).join(', ') || fallback;
+  }
+  if (!err.response) return 'Cannot reach server — is the backend running on port 5000?';
+  return fallback;
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -42,13 +59,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const signup = useCallback(async (data: { name: string; email: string; phone: string; password: string; role: string }) => {
+  const signup = useCallback(async (data: { name: string; email: string; phone: string; password: string; role: string; phoneVerificationToken: string }) => {
     try {
       const { data: res } = await api.post('/auth/signup', data);
       setUser(res.user);
       return { ok: true };
     } catch (err: any) {
       return { ok: false, error: err.response?.data?.error || 'Signup failed', errors: err.response?.data?.errors };
+    }
+  }, []);
+
+
+  const sendOtp = useCallback(async (phone: string) => {
+    try {
+      console.log('[sendOtp] POST /auth/send-otp', { phone });
+      await api.post('/auth/send-otp', { phone });
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, error: extractApiError(err, 'Failed to send OTP') };
+    }
+  }, []);
+
+  const verifyOtp = useCallback(async (phone: string, code: string) => {
+    try {
+      console.log('[verifyOtp] POST /auth/verify-otp', { phone, codeLength: code.length });
+      const { data: res } = await api.post('/auth/verify-otp', { phone, code });
+      return { ok: true, verified: res.verified, phoneVerificationToken: res.phoneVerificationToken };
+    } catch (err: any) {
+      return { ok: false, verified: false, error: extractApiError(err, 'Verification failed') };
     }
   }, []);
 
@@ -59,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   }, []);
 
-  const value = useMemo(() => ({ user, loading, login, signup, logout, refresh }), [user, loading, login, signup, logout, refresh]);
+  const value = useMemo(() => ({ user, loading, login, signup, sendOtp, verifyOtp, logout, refresh }), [user, loading, login, signup, sendOtp, verifyOtp, logout, refresh]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

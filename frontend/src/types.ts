@@ -5,6 +5,7 @@ export interface User {
   name: string;
   email: string;
   phone: string;
+  phoneVerified: boolean;
   role: UserRole;
   tokenVersion: number;
   createdAt: string;

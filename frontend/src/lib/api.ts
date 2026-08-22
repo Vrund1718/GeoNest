@@ -4,6 +4,8 @@ const PUBLIC_AUTH_URLS = new Set([
   '/auth/login',
   '/auth/signup',
   '/auth/refresh',
+  '/auth/send-otp',
+  '/auth/verify-otp',
 ]);
 
 const urlMatches = (cfg: AxiosRequestConfig | undefined, suffixes: Set<string>) => {

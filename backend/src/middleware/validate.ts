@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import { INDIAN_E164_REGEX } from '../utils/phone';
+
+const indianPhone = z
+  .string()
+  .regex(INDIAN_E164_REGEX, 'Phone must be +91 followed by a 10-digit Indian mobile number (e.g. +919876543210)');
 
 export const strongPassword = z
   .string()
@@ -11,9 +16,23 @@ export const signUpSchema = z.object({
   body: z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email format'),
-    phone: z.string().min(10, 'Phone must be at least 10 digits').regex(/^\+?\d{10,15}$/, 'Invalid phone format'),
+    phone: indianPhone,
     password: strongPassword,
     role: z.enum(['student', 'owner', 'admin']),
+    phoneVerificationToken: z.string().min(1, 'Phone verification token is required'),
+  }),
+});
+
+export const sendOtpSchema = z.object({
+  body: z.object({
+    phone: indianPhone,
+  }),
+});
+
+export const verifyOtpSchema = z.object({
+  body: z.object({
+    phone: indianPhone,
+    code: z.string().length(6, 'OTP must be 6 digits'),
   }),
 });
 
@@ -70,6 +89,10 @@ export const validate = (schema: z.ZodObject<any>) => (req: any, res: any, next:
     next();
   } catch (err: any) {
     const errors = err.issues.map((i: any) => ({ field: i.path.join('.'), message: i.message }));
-    return res.status(400).json({ errors });
+    const firstMessage = errors[0]?.message;
+    return res.status(400).json({
+      error: firstMessage || 'Validation failed',
+      errors,
+    });
   }
 };

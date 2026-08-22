@@ -6,21 +6,89 @@ import { PasswordInput } from '../../components/PasswordInput';
 type Role = 'student' | 'owner' | 'admin';
 
 export const SignupPage: React.FC = () => {
-  const { signup } = useAuth();
+  const { signup, sendOtp, verifyOtp } = useAuth();
   const nav = useNavigate();
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', role: 'student' as Role });
   const [err, setErr] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  const setF = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm({ ...form, [k]: v });
+  // OTP State
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [phoneVerificationToken, setPhoneVerificationToken] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+
+  const setF = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => {
+    if (k === 'phone') {
+      setOtpSent(false);
+      setOtpVerified(false);
+      setPhoneVerificationToken('');
+      setOtp('');
+    }
+    setForm({ ...form, [k]: v });
+  };
+
+  const handleSendOtp = async () => {
+    if (!form.phone.match(/^[6-9]\d{9}$/)) {
+      setErr('Please enter a valid 10-digit Indian mobile number starting with 6-9');
+      return;
+    }
+    const fullPhone = `+91${form.phone}`;
+    setSendingOtp(true);
+    setErr(null);
+    const res = await sendOtp(fullPhone);
+    setSendingOtp(false);
+    if (res.ok) {
+      setOtpSent(true);
+      setResendTimer(30);
+      const timer = setInterval(() => {
+        setResendTimer((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      setErr(res.error || 'Failed to send OTP');
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) {
+      setErr('Please enter a 6-digit OTP');
+      return;
+    }
+    const fullPhone = `+91${form.phone}`;
+    setVerifyingOtp(true);
+    setErr(null);
+    const res = await verifyOtp(fullPhone, otp);
+    setVerifyingOtp(false);
+    if (res.ok && res.verified) {
+      setOtpVerified(true);
+      setPhoneVerificationToken(res.phoneVerificationToken || '');
+      setOtpSent(false);
+    } else {
+      setErr(res.error || 'Incorrect or expired code');
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!otpVerified) {
+      setErr('Please verify your phone number first');
+      return;
+    }
     setErr(null);
     setFieldErrors({});
     setLoading(true);
-    const res = await signup(form);
+    const fullPhone = `+91${form.phone}`;
+    const res = await signup({ ...form, phone: fullPhone, phoneVerificationToken });
     setLoading(false);
     if (res.ok) {
       const target = form.role === 'admin' ? '/admin' : form.role === 'owner' ? '/owner' : '/student';
@@ -181,36 +249,106 @@ export const SignupPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="signup-email" className="label">
-                    Email {fe('email') && <span className="text-coral font-normal ml-2 text-xs">{fe('email')}</span>}
-                  </label>
-                  <input
-                    id="signup-email"
-                    type="email"
-                    required
-                    className={`input ${fe('email') ? 'border-coral/60 focus:ring-coral/30 focus:border-coral' : ''}`}
-                    value={form.email}
-                    onChange={(e) => setF('email', e.target.value.toLowerCase())}
-                    autoComplete="email"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="signup-phone" className="label">
+              <div>
+                <label htmlFor="signup-email" className="label">
+                  Email {fe('email') && <span className="text-coral font-normal ml-2 text-xs">{fe('email')}</span>}
+                </label>
+                <input
+                  id="signup-email"
+                  type="email"
+                  required
+                  className={`input ${fe('email') ? 'border-coral/60 focus:ring-coral/30 focus:border-coral' : ''}`}
+                  value={form.email}
+                  onChange={(e) => setF('email', e.target.value.toLowerCase())}
+                  autoComplete="email"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="signup-phone" className="label flex items-center justify-between">
+                  <span>
                     Phone {fe('phone') && <span className="text-coral font-normal ml-2 text-xs">{fe('phone')}</span>}
-                  </label>
-                  <input
-                    id="signup-phone"
-                    type="tel"
-                    required
-                    className={`input ${fe('phone') ? 'border-coral/60 focus:ring-coral/30 focus:border-coral' : ''}`}
-                    value={form.phone}
-                    onChange={(e) => setF('phone', e.target.value)}
-                    placeholder="+91…"
-                    autoComplete="tel"
-                  />
+                  </span>
+                  {otpVerified && (
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-sage uppercase tracking-wider">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      Verified
+                    </span>
+                  )}
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1 group">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+                      <span className="text-sm font-semibold text-ink/40 group-focus-within:text-indigo-500 transition-colors">+91</span>
+                    </div>
+                    <input
+                      id="signup-phone"
+                      type="tel"
+                      required
+                      disabled={otpSent || otpVerified}
+                      className={`input w-full pl-12 ${fe('phone') ? 'border-coral/60 focus:ring-coral/30 focus:border-coral' : ''} ${otpVerified ? 'border-sage/40 bg-sage/[0.03]' : ''}`}
+                      value={form.phone}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setF('phone', val);
+                      }}
+                      placeholder="Mobile number"
+                      autoComplete="tel"
+                    />
+                  </div>
+                  {!otpVerified && (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={sendingOtp || form.phone.length !== 10 || otpSent}
+                      className="btn-secondary px-4 h-11 text-xs whitespace-nowrap rounded-xl"
+                    >
+                      {sendingOtp ? 'Sending…' : otpSent ? 'OTP Sent' : 'Verify'}
+                    </button>
+                  )}
                 </div>
+
+                {otpSent && !otpVerified && (
+                  <div className="mt-3 space-y-3 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="otp-input" className="text-xs font-semibold text-indigo-900 uppercase tracking-wider">
+                        Enter 6-digit OTP
+                      </label>
+                      {resendTimer > 0 ? (
+                        <span className="text-[10px] text-indigo-600 font-medium">Resend in {resendTimer}s</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleSendOtp}
+                          className="text-[10px] text-indigo-600 font-bold hover:text-indigo-800 underline uppercase tracking-wider"
+                        >
+                          Resend OTP
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        id="otp-input"
+                        type="text"
+                        maxLength={6}
+                        placeholder="000000"
+                        className="input flex-1 text-center tracking-[0.5em] font-mono font-bold"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyOtp}
+                        disabled={verifyingOtp || otp.length !== 6}
+                        className="btn-primary px-4 h-10 text-xs"
+                      >
+                        {verifyingOtp ? 'Verifying…' : 'Confirm'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <PasswordInput
@@ -227,8 +365,8 @@ export const SignupPage: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={loading}
-                className="btn-primary w-full h-11 rounded-xl shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marigold-500/60 focus-visible:ring-offset-2"
+                disabled={loading || !otpVerified}
+                className="btn-primary w-full h-11 rounded-xl shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marigold-500/60 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <span className="inline-flex items-center gap-2">
