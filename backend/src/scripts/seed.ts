@@ -13,6 +13,7 @@ import Notification from '../models/Notification';
 import NearbyPlace from '../models/NearbyPlace';
 import Payment from '../models/Payment';
 import mongoose from 'mongoose';
+import ahmedabadPGsRaw from './ahmedabad_pgs.json';
 
 const sampleImages = [
   'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&auto=format&fit=crop',
@@ -25,98 +26,11 @@ const sampleImages = [
   'https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=800&auto=format&fit=crop',
 ];
 
-const ahmedabadPGs = [
-  {
-    name: "Nirma Residency Boys PG", address: "Near Nirma University Gate 2, SG Highway", city: "Ahmedabad",
-    collegeName: "Nirma University", lat: 23.1020, lng: 72.5945, totalRooms: 20, availableRooms: 8,
-    genderPreference: 'male' as const, pricePerMonth: 9500, securityDeposit: 9500, verified: true,
-    amenities: ["Wi-Fi", "Mess", "Laundry", "24/7 Water", "Parking", "AC"],
-  },
-  {
-    name: "Saffron Girls Hostel", address: "Prahlad Nagar, Near SG Highway", city: "Ahmedabad",
-    collegeName: "Nirma University", lat: 23.0987, lng: 72.5900, totalRooms: 30, availableRooms: 12,
-    genderPreference: 'female' as const, pricePerMonth: 11000, securityDeposit: 11000, verified: true,
-    amenities: ["Wi-Fi", "Mess", "Laundry", "Security", "24/7 Water", "AC", "Gym"],
-  },
-  {
-    name: "Royal Paying Guest", address: "Thaltej, Bodakdev Road", city: "Ahmedabad",
-    collegeName: "Nirma University", lat: 23.0950, lng: 72.5980, totalRooms: 15, availableRooms: 5,
-    genderPreference: 'unisex' as const, pricePerMonth: 8500, securityDeposit: 8500, verified: true,
-    amenities: ["Wi-Fi", "Laundry", "Parking", "CCTV", "24/7 Water"],
-  },
-  {
-    name: "Krishna Girls PG", address: "Bodakdev, Opposite Alpha Mall", city: "Ahmedabad",
-    collegeName: "Nirma University", lat: 23.1040, lng: 72.5880, totalRooms: 25, availableRooms: 10,
-    genderPreference: 'female' as const, pricePerMonth: 10500, securityDeposit: 10500, verified: true,
-    amenities: ["Wi-Fi", "Mess", "AC", "CCTV", "Security", "Lift"],
-  },
-  {
-    name: "Bodakdev Boys Hostel", address: "Bodakdev, Near GNFC Tower", city: "Ahmedabad",
-    collegeName: "IIM Ahmedabad", lat: 23.0160, lng: 72.5400, totalRooms: 18, availableRooms: 7,
-    genderPreference: 'male' as const, pricePerMonth: 12000, securityDeposit: 12000, verified: true,
-    amenities: ["Wi-Fi", "Mess", "Gym", "24/7 Water", "AC", "Study Room"],
-  },
-  {
-    name: "Navrangpura Elite PG", address: "Navrangpura, Near Gujarat University", city: "Ahmedabad",
-    collegeName: "GJ University", lat: 23.0380, lng: 72.5490, totalRooms: 22, availableRooms: 9,
-    genderPreference: 'unisex' as const, pricePerMonth: 9000, securityDeposit: 9000, verified: true,
-    amenities: ["Wi-Fi", "Mess", "Lift", "Parking", "Laundry", "CCTV"],
-  },
-  {
-    name: "Gulmohar Grand Paying Guest", address: "Vastrapur, Near Vastrapur Lake", city: "Ahmedabad",
-    collegeName: "IIM Ahmedabad", lat: 23.0180, lng: 72.5420, totalRooms: 35, availableRooms: 15,
-    genderPreference: 'unisex' as const, pricePerMonth: 13500, securityDeposit: 13500, verified: true,
-    amenities: ["Wi-Fi", "Mess", "AC", "Gym", "Lift", "Pool Table", "Study Room"],
-  },
-  {
-    name: "Chandkheda Comfort PG", address: "Chandkheda, Near New CG Road", city: "Ahmedabad",
-    collegeName: "Nirma University", lat: 23.1180, lng: 72.5850, totalRooms: 28, availableRooms: 11,
-    genderPreference: 'male' as const, pricePerMonth: 7500, securityDeposit: 7500, verified: true,
-    amenities: ["Wi-Fi", "Mess", "24/7 Water", "Parking", "Laundry"],
-  },
-  {
-    name: "SG Highway Girls Hub", address: "SG Highway, Sola Cross Roads", city: "Ahmedabad",
-    collegeName: "Nirma University", lat: 23.0890, lng: 72.5990, totalRooms: 32, availableRooms: 13,
-    genderPreference: 'female' as const, pricePerMonth: 10000, securityDeposit: 10000, verified: true,
-    amenities: ["Wi-Fi", "Mess", "AC", "CCTV", "Security", "Gym", "Lift"],
-  },
-  {
-    name: "New CG Road Boys PG", address: "New CG Road, Chandkheda", city: "Ahmedabad",
-    collegeName: "LD Engineering College", lat: 23.0410, lng: 72.5510, totalRooms: 16, availableRooms: 0,
-    genderPreference: 'male' as const, pricePerMonth: 8000, securityDeposit: 8000, verified: true,
-    amenities: ["Wi-Fi", "Mess", "Laundry", "Parking"],
-  },
-  {
-    name: "Satellite Paradise", address: "Satellite, Near ISRO", city: "Ahmedabad",
-    collegeName: "GJ University", lat: 23.0300, lng: 72.5350, totalRooms: 40, availableRooms: 18,
-    genderPreference: 'unisex' as const, pricePerMonth: 15000, securityDeposit: 15000, verified: true,
-    amenities: ["Wi-Fi", "Mess", "AC", "Gym", "Pool", "Lift", "CCTV", "Study Room", "Laundry"],
-  },
-  {
-    name: "Prahlad Nagar Nest", address: "Prahlad Nagar, Near Inorbit Mall", city: "Ahmedabad",
-    collegeName: "Nirma University", lat: 23.0970, lng: 72.5910, totalRooms: 20, availableRooms: 3,
-    genderPreference: 'unisex' as const, pricePerMonth: 9200, securityDeposit: 9200, verified: true,
-    amenities: ["Wi-Fi", "Mess", "24/7 Water", "Laundry", "CCTV", "AC"],
-  },
-  {
-    name: "Vastrapur Value PG", address: "Vastrapur, Near IIM", city: "Ahmedabad",
-    collegeName: "IIM Ahmedabad", lat: 23.0130, lng: 72.5390, totalRooms: 14, availableRooms: 4,
-    genderPreference: 'male' as const, pricePerMonth: 11500, securityDeposit: 11500, verified: false,
-    amenities: ["Wi-Fi", "Mess", "24/7 Water", "Gym", "Laundry"],
-  },
-  {
-    name: "Shela Green Paying Guest", address: "Shela, South Bopal Road", city: "Ahmedabad",
-    collegeName: "Nirma University", lat: 23.0680, lng: 72.4950, totalRooms: 26, availableRooms: 6,
-    genderPreference: 'unisex' as const, pricePerMonth: 6500, securityDeposit: 6500, verified: true,
-    amenities: ["Wi-Fi", "Mess", "Parking", "24/7 Water", "Laundry"],
-  },
-  {
-    name: "South Bopal Girls Only", address: "South Bopal, Near BRTS Stand", city: "Ahmedabad",
-    collegeName: "Nirma University", lat: 23.0710, lng: 72.5030, totalRooms: 24, availableRooms: 9,
-    genderPreference: 'female' as const, pricePerMonth: 7800, securityDeposit: 7800, verified: false,
-    amenities: ["Wi-Fi", "Mess", "Security", "CCTV", "Lift"],
-  },
-];
+const ahmedabadPGs = ahmedabadPGsRaw.map(pg => ({
+  ...pg,
+  genderPreference: pg.genderPreference as 'male' | 'female' | 'unisex'
+}));
+
 
 const nearbyPlaceTypes = ['hospital', 'atm', 'gym', 'restaurant', 'medical_store', 'bus_stop', 'metro_station', 'police'] as const;
 const nearbyNames: Record<string, string[]> = {
@@ -189,8 +103,11 @@ const seed = async () => {
   const amenityDocs = await Amenity.create(amenityDefs);
   const amenityByName = new Map(amenityDocs.map(a => [a.name.toLowerCase(), a]));
 
-  console.log('Creating PG listings...');
-  const pgs = [];
+  console.log('Creating PG listings (building bulk operations)...');
+  const pgsToInsert: any[] = [];
+  const imagesToInsert: any[] = [];
+  const nearbyPlacesToInsert: any[] = [];
+
   for (let i = 0; i < ahmedabadPGs.length; i++) {
     const p = ahmedabadPGs[i];
     const owner = owners[i % owners.length];
@@ -198,7 +115,11 @@ const seed = async () => {
       .map(n => amenityByName.get(n.toLowerCase()))
       .filter(Boolean)
       .map(a => a!._id);
-    const pg = await PGListing.create({
+
+    const pgId = new mongoose.Types.ObjectId();
+
+    pgsToInsert.push({
+      _id: pgId,
       ownerId: owner._id,
       name: p.name,
       address: p.address,
@@ -214,12 +135,11 @@ const seed = async () => {
       status: 'active',
       amenities: amenityIds,
     });
-    pgs.push(pg);
 
     const imgCount = 3 + (i % 4);
     for (let k = 0; k < imgCount; k++) {
-      await Image.create({
-        pgId: pg._id,
+      imagesToInsert.push({
+        pgId: pgId,
         url: sampleImages[(i + k) % sampleImages.length],
         isPrimary: k === 0,
         uploadedBy: admin._id,
@@ -238,8 +158,8 @@ const seed = async () => {
           const dx = (placeLng - p.lng) * 111000 * Math.cos(p.lat * Math.PI / 180);
           const dy = (placeLat - p.lat) * 111000;
           const distance = Math.round(Math.sqrt(dx * dx + dy * dy));
-          await NearbyPlace.create({
-            pgId: pg._id,
+          nearbyPlacesToInsert.push({
+            pgId: pgId,
             placeType: t,
             name: names[(i + n) % names.length],
             location: { type: 'Point', coordinates: [placeLng, placeLat] },
@@ -249,6 +169,16 @@ const seed = async () => {
       }
     }
   }
+
+  console.log(`Inserting ${pgsToInsert.length} PG listings in bulk...`);
+  const pgs = await PGListing.insertMany(pgsToInsert);
+
+  console.log(`Inserting ${imagesToInsert.length} images in bulk...`);
+  await Image.insertMany(imagesToInsert);
+
+  console.log(`Inserting ${nearbyPlacesToInsert.length} nearby places in bulk...`);
+  await NearbyPlace.insertMany(nearbyPlacesToInsert);
+
 
   console.log('Creating reviews, bookings, wishlist, complaints...');
   const reviewTexts = [
