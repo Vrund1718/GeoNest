@@ -13,6 +13,7 @@ import { geocodeWithFallback } from '../services/geocoding';
 import { computeDefaultScoreSort, getRecommendations } from '../services/recommend';
 import { sendNotification } from '../utils/notifications';
 import { bookingSchema, reviewSchema, complaintSchema, validate } from '../middleware/validate';
+import { processOverdueComplaintPenalties } from '../services/ratingPenaltyService';
 
 const router = Router();
 
@@ -116,14 +117,21 @@ router.get('/search', async (req, res) => {
       results = scored.map((s) => ({ ...s.pg, _score: s.score }));
     }
 
+    await processOverdueComplaintPenalties();
+
     const formatted = results.map((r) => {
       const reviews = r.reviews || [];
-      const avgRating = reviews.length
+      const rawAvg = reviews.length
         ? reviews.reduce((s: number, rev: any) => s + rev.rating, 0) / reviews.length
         : null;
+      const penalty = r.ratingPenalty || 0;
+      const effectiveRating = rawAvg !== null
+        ? Math.max(1.0, Math.min(5.0, Math.round((rawAvg - penalty) * 10) / 10))
+        : (penalty > 0 ? Math.max(1.0, 4.5 - penalty) : null);
+
       return {
         ...r,
-        averageRating: avgRating ? Math.round(avgRating * 10) / 10 : null,
+        averageRating: effectiveRating,
         reviewCount: reviews.length,
         primaryImage: r.allImages?.[0]?.url || null,
         distanceMeters: r.distMeters ?? undefined,
@@ -213,6 +221,8 @@ router.get('/:id', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(404).json({ error: 'Invalid PG ID' });
     }
+    await processOverdueComplaintPenalties();
+
     const pg = await PGListing.findById(id).populate('amenities');
     if (!pg || pg.status === 'deleted') {
       return res.status(404).json({ error: 'PG not found' });
@@ -222,9 +232,14 @@ router.get('/:id', async (req, res) => {
       .populate('userId', 'name createdAt')
       .sort({ createdAt: -1 });
     const nearby = await NearbyPlace.find({ pgId: id }).sort({ placeType: 1, distanceMeters: 1 });
-    const avgRating = reviews.length
-      ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+    
+    const rawAvg = reviews.length
+      ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
       : null;
+    const penalty = pg.ratingPenalty || 0;
+    const effectiveRating = rawAvg !== null
+      ? Math.max(1.0, Math.min(5.0, Math.round((rawAvg - penalty) * 10) / 10))
+      : (penalty > 0 ? Math.max(1.0, 4.5 - penalty) : null);
 
     const nearbyGrouped: Record<string, any[]> = {};
     for (const np of nearby) {
@@ -236,7 +251,7 @@ router.get('/:id', async (req, res) => {
       pg,
       images,
       reviews,
-      averageRating: avgRating,
+      averageRating: effectiveRating,
       reviewCount: reviews.length,
       nearbyPlaces: nearbyGrouped,
     });
@@ -261,6 +276,19 @@ router.get('/:id/nearby-places', async (req, res) => {
   }
 });
 
+router.get('/:id/booked-dates', async (req, res) => {
+  try {
+    const bookings = await Booking.find({
+      pgId: req.params.id,
+      status: { $in: ['requested', 'confirmed'] },
+    }).select('startDate endDate status');
+    return res.json({ bookings });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to fetch booked dates' });
+  }
+});
+
 router.post('/:id/book', requireAuth, validate(bookingSchema), async (req: AuthRequest, res) => {
   try {
     const pg = await PGListing.findById(req.params.id).populate<{ ownerId: any }>('ownerId');
@@ -270,14 +298,52 @@ router.post('/:id/book', requireAuth, validate(bookingSchema), async (req: AuthR
     const { startDate, endDate } = req.body;
     const start = new Date(startDate);
     const end = new Date(endDate);
-    if (end <= start) return res.status(400).json({ error: 'End date must be after start' });
+    if (end <= start) return res.status(400).json({ error: 'End date must be after start date' });
 
-    const existing = await Booking.findOne({
+    // Check for user's active booking
+    const existingUserBooking = await Booking.findOne({
       pgId: pg._id,
       userId: req.user!._id,
       status: { $in: ['requested', 'confirmed'] },
     });
-    if (existing) return res.status(400).json({ error: 'You already have an active booking for this PG' });
+    if (existingUserBooking) return res.status(400).json({ error: 'You already have an active booking for this PG' });
+
+    // Check for overlapping bookings by date range
+    const overlapping = await Booking.find({
+      pgId: pg._id,
+      status: { $in: ['requested', 'confirmed'] },
+      $or: [
+        { startDate: { $lt: end }, endDate: { $gt: start } },
+      ],
+    });
+
+    if (overlapping.length > 0) {
+      const maxEndTime = Math.max(...overlapping.map((b) => new Date(b.endDate).getTime()));
+      const nextAvailStart = new Date(maxEndTime);
+      nextAvailStart.setDate(nextAvailStart.getDate() + 1);
+
+      const durationMs = end.getTime() - start.getTime();
+      const nextAvailEnd = new Date(nextAvailStart.getTime() + durationMs);
+
+      const toISODate = (d: Date) => d.toISOString().split('T')[0];
+
+      const overlapStartFmt = new Date(overlapping[0].startDate).toLocaleDateString();
+      const overlapEndFmt = new Date(overlapping[0].endDate).toLocaleDateString();
+
+      return res.status(400).json({
+        error: `This PG is unavailable for the selected dates as it overlaps with an existing booking (${overlapStartFmt} to ${overlapEndFmt}).`,
+        isOverlapping: true,
+        overlappingRange: {
+          start: toISODate(overlapping[0].startDate),
+          end: toISODate(overlapping[0].endDate),
+        },
+        nextAvailableDate: toISODate(nextAvailStart),
+        suggestedRange: {
+          start: toISODate(nextAvailStart),
+          end: toISODate(nextAvailEnd),
+        },
+      });
+    }
 
     const booking = await Booking.create({
       pgId: pg._id,
@@ -374,6 +440,17 @@ router.post('/:id/complaints', requireAuth, validate(complaintSchema), async (re
   try {
     const pg = await PGListing.findById(req.params.id);
     if (!pg) return res.status(404).json({ error: 'PG not found' });
+
+    // Restrict complaint filing to active (confirmed) bookings
+    const activeBooking = await Booking.findOne({
+      pgId: pg._id,
+      userId: req.user!._id,
+      status: 'confirmed',
+    });
+    if (!activeBooking) {
+      return res.status(403).json({ error: 'You can only file a complaint if you have an active PG booking.' });
+    }
+
     const { type, description } = req.body;
     const complaint = await Complaint.create({
       userId: req.user!._id,

@@ -3,6 +3,13 @@ import mongoose, { Document, Schema } from 'mongoose';
 export type GenderPreference = 'male' | 'female' | 'unisex';
 export type PGStatus = 'active' | 'inactive' | 'deleted';
 
+export interface IRatingLog {
+  complaintId?: mongoose.Types.ObjectId;
+  amount: number;
+  reason: string;
+  date: Date;
+}
+
 export interface IPGListing extends Document {
   ownerId: mongoose.Types.ObjectId;
   name: string;
@@ -18,6 +25,8 @@ export interface IPGListing extends Document {
   isVerified: boolean;
   status: PGStatus;
   amenities: mongoose.Types.ObjectId[];
+  ratingPenalty: number;
+  ratingLogs: IRatingLog[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +50,15 @@ const PGListingSchema: Schema = new Schema(
     isVerified: { type: Boolean, required: true, default: false, index: true },
     status: { type: String, enum: ['active', 'inactive', 'deleted'], required: true, default: 'active', index: true },
     amenities: [{ type: Schema.Types.ObjectId, ref: 'Amenity' }],
+    ratingPenalty: { type: Number, default: 0, min: 0, max: 4 },
+    ratingLogs: [
+      {
+        complaintId: { type: Schema.Types.ObjectId, ref: 'Complaint' },
+        amount: { type: Number, required: true },
+        reason: { type: String, required: true },
+        date: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

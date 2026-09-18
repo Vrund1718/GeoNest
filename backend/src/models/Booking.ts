@@ -9,6 +9,15 @@ export interface IRenewalRequest {
   createdAt: Date;
 }
 
+export interface ICancellationDetails {
+  cancellationDate: Date;
+  daysUtilized: number;
+  usageCharge: number;
+  cancellationCharge: number;
+  securityDepositRefund: number;
+  netRefundAmount: number;
+}
+
 export interface IBooking extends Document {
   pgId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
@@ -16,6 +25,7 @@ export interface IBooking extends Document {
   startDate: Date;
   endDate: Date;
   renewalHistory: IRenewalRequest[];
+  cancellationDetails?: ICancellationDetails;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +51,14 @@ const BookingSchema: Schema = new Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
+    cancellationDetails: {
+      cancellationDate: { type: Date },
+      daysUtilized: { type: Number },
+      usageCharge: { type: Number },
+      cancellationCharge: { type: Number },
+      securityDepositRefund: { type: Number },
+      netRefundAmount: { type: Number },
+    },
   },
   { timestamps: true }
 );

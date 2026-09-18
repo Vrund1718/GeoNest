@@ -25,6 +25,13 @@ export interface Image {
   isPrimary: boolean;
 }
 
+export interface RatingLog {
+  complaintId?: string;
+  amount: number;
+  reason: string;
+  date: string;
+}
+
 export interface PGListing {
   _id: string;
   ownerId: string | { userId?: { _id?: string; name?: string; email?: string } };
@@ -41,6 +48,8 @@ export interface PGListing {
   isVerified: boolean;
   status: 'active' | 'inactive' | 'deleted';
   amenities: Amenity[];
+  ratingPenalty?: number;
+  ratingLogs?: RatingLog[];
   createdAt: string;
   updatedAt: string;
   averageRating?: number | null;
@@ -59,6 +68,34 @@ export interface Review {
   createdAt: string;
 }
 
+export interface CancellationDetails {
+  cancellationDate: string;
+  daysUtilized: number;
+  usageCharge: number;
+  cancellationCharge: number;
+  securityDepositRefund: number;
+  netRefundAmount: number;
+}
+
+export interface CancellationPreview {
+  bookingId: string;
+  pgName: string;
+  cancellationDate: string;
+  startDate: string;
+  endDate: string;
+  totalDays: number;
+  daysUtilized: number;
+  dailyRate: number;
+  totalStayCost: number;
+  securityDeposit: number;
+  totalPaid: number;
+  usageCharge: number;
+  cancellationCharge: number;
+  securityDepositRefund: number;
+  netRefundAmount: number;
+  policyNote: string;
+}
+
 export interface Booking {
   _id: string;
   pgId: PGListing | string;
@@ -72,6 +109,7 @@ export interface Booking {
     status: 'pending' | 'approved' | 'rejected';
     createdAt: string;
   }[];
+  cancellationDetails?: CancellationDetails;
   createdAt: string;
 }
 
@@ -84,7 +122,7 @@ export interface WishlistEntry {
 export interface Complaint {
   _id: string;
   userId: { _id: string; name: string; email: string };
-  pgId: { _id: string; name: string; city: string };
+  pgId: { _id: string; name: string; city: string; ratingPenalty?: number };
   type: 'hygiene' | 'noise' | 'safety' | 'staff' | 'amenity' | 'electrician' | 'plumber' | 'wifi' | 'furniture' | 'water' | 'security' | 'pest_control' | 'food' | 'other';
   description: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -94,6 +132,10 @@ export interface Complaint {
     message: string;
     createdAt: string;
   }[];
+  estimatedResolutionHours?: number;
+  estimatedResolutionDate?: string;
+  ratingDeducted?: boolean;
+  ratingDeductionAmount?: number;
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   resolvedAt?: string;
   createdAt: string;

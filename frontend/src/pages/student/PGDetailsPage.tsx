@@ -33,6 +33,10 @@ export const PGDetailsPage: React.FC = () => {
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [complaint, setComplaint] = useState({ type: 'other' as any, description: '' });
   const [reviewForm, setReviewForm] = useState({ rating: 5, text: '' });
+  const [hasActiveBooking, setHasActiveBooking] = useState(false);
+  const [bookedRanges, setBookedRanges] = useState<{ startDate: string; endDate: string; status: string }[]>([]);
+  const [overlapSuggestion, setOverlapSuggestion] = useState<{ message: string; suggestedRange?: { start: string; end: string } } | null>(null);
+  const [restrictedComplaintModal, setRestrictedComplaintModal] = useState(false);
   const [indiaGeoJson, setIndiaGeoJson] = useState<any>(null);
 
   useEffect(() => {
@@ -42,7 +46,7 @@ export const PGDetailsPage: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2500); };
+  const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(null), 3000); };
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -54,6 +58,11 @@ export const PGDetailsPage: React.FC = () => {
       setReviews(data.reviews || []);
       setAvgRating(data.averageRating);
       setNearby(data.nearbyPlaces || {});
+
+      // Fetch booked dates
+      api.get(`/pg/${id}/booked-dates`).then((res) => {
+        setBookedRanges(res.data.bookings || []);
+      }).catch(() => {});
     } catch (e: any) { 
       const errorMsg = e.response?.data?.error || 'Failed to load';
       showToast(errorMsg);
@@ -72,17 +81,43 @@ export const PGDetailsPage: React.FC = () => {
       const match = (r.data.wishlist || []).find((w: any) => w.pgId?._id === id);
       setWishlisted(!!match);
     }).catch(() => {});
+
+    if (user.role === 'student') {
+      api.get('/active-bookings').then((r) => {
+        const activeForThisPg = (r.data.bookings || []).some((b: any) => b.pgId?._id === id || b.pgId === id);
+        setHasActiveBooking(activeForThisPg);
+      }).catch(() => {});
+    }
   }, [id, user]);
 
   const book = async () => {
-    if (!id || !bookDates.start || !bookDates.end) return showToast('Please select dates');
+    if (!id || !bookDates.start || !bookDates.end) return showToast('Please select move-in and move-out dates');
     setBooking(true);
+    setOverlapSuggestion(null);
     try {
       await api.post(`/pg/${id}/book`, { startDate: bookDates.start, endDate: bookDates.end });
       showToast('Booking request sent!');
       nav('/student/bookings');
-    } catch (e: any) { showToast(e.response?.data?.error || 'Booking failed'); }
+    } catch (e: any) {
+      if (e.response?.data?.isOverlapping) {
+        setOverlapSuggestion({
+          message: e.response.data.error,
+          suggestedRange: e.response.data.suggestedRange
+        });
+        showToast('Dates overlap with existing booking!');
+      } else {
+        showToast(e.response?.data?.error || 'Booking failed');
+      }
+    }
     setBooking(false);
+  };
+
+  const handleOpenComplaint = () => {
+    if (user?.role === 'student' && !hasActiveBooking) {
+      setRestrictedComplaintModal(true);
+    } else {
+      setComplaintOpen(true);
+    }
   };
 
   const toggleWishlist = async () => {
@@ -115,7 +150,7 @@ export const PGDetailsPage: React.FC = () => {
       setComplaint({ type: 'other', description: '' });
       setComplaintOpen(false);
       showToast('Complaint filed');
-    } catch (e: any) { showToast(e.response?.data?.error || 'Failed'); }
+    } catch (e: any) { showToast(e.response?.data?.error || 'Failed to file complaint'); }
   };
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-12 h-12 border-4 border-marigold-500 border-t-transparent rounded-full" /></div>;
@@ -157,7 +192,7 @@ export const PGDetailsPage: React.FC = () => {
                 <button onClick={toggleWishlist} disabled={wishlisting} className="btn-secondary">
                   {wishlisted ? '⭐ Wishlisted' : '☆ Add to Wishlist'}
                 </button>
-                <button onClick={() => setComplaintOpen(true)} className="btn-secondary">⚠️ File Complaint</button>
+                <button onClick={handleOpenComplaint} className="btn-secondary">⚠️ File Complaint</button>
               </div>
             }
           />
@@ -298,20 +333,58 @@ export const PGDetailsPage: React.FC = () => {
             <div className="space-y-3 mb-4">
               <div>
                 <label className="label">Move-in date</label>
-                <input type="date" className="input" value={bookDates.start} onChange={(e) => setBookDates({ ...bookDates, start: e.target.value })} />
+                <input type="date" className="input" value={bookDates.start} onChange={(e) => { setBookDates({ ...bookDates, start: e.target.value }); setOverlapSuggestion(null); }} />
               </div>
               <div>
                 <label className="label">Move-out date</label>
-                <input type="date" className="input" value={bookDates.end} onChange={(e) => setBookDates({ ...bookDates, end: e.target.value })} />
+                <input type="date" className="input" value={bookDates.end} onChange={(e) => { setBookDates({ ...bookDates, end: e.target.value }); setOverlapSuggestion(null); }} />
               </div>
             </div>
+
+            {overlapSuggestion && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-800 space-y-2">
+                <div className="font-semibold flex items-center gap-1">
+                  <span>⛔</span> Unavailable Dates
+                </div>
+                <p>{overlapSuggestion.message}</p>
+                {overlapSuggestion.suggestedRange && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBookDates({
+                        start: overlapSuggestion.suggestedRange!.start,
+                        end: overlapSuggestion.suggestedRange!.end
+                      });
+                      setOverlapSuggestion(null);
+                    }}
+                    className="btn-primary w-full text-xs py-1.5 bg-red-700 hover:bg-red-800 text-white"
+                  >
+                    ✨ Select Next Available: {overlapSuggestion.suggestedRange.start} to {overlapSuggestion.suggestedRange.end}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {bookedRanges.length > 0 && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                <div className="font-semibold mb-1">📅 Reserved Dates for this PG:</div>
+                <ul className="list-disc list-inside space-y-0.5">
+                  {bookedRanges.map((b, idx) => (
+                    <li key={idx}>
+                      {new Date(b.startDate).toLocaleDateString()} – {new Date(b.endDate).toLocaleDateString()}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <button onClick={book} disabled={booking || pg.availableRooms <= 0} className="btn-primary w-full py-3">
               {booking ? 'Requesting...' : pg.availableRooms <= 0 ? 'No rooms available' : 'Request to book'}
             </button>
             <p className="text-[11px] text-ink/55 mt-2 text-center">You won't be charged yet. Owner will confirm your request.</p>
             <div className="separator" />
             <div className="space-y-2 text-xs text-ink/55">
-              <p>✓ Free cancellation up to 48 hours before move-in</p>
+              <p>✓ Free cancellation policy with transparent breakdown</p>
               <p>✓ Verified listing, secure payments</p>
               <p>✓ 24/7 support</p>
             </div>
@@ -344,8 +417,23 @@ export const PGDetailsPage: React.FC = () => {
         </div>
       )}
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-[60] card shadow-pop px-5 py-3 bg-ink-700 text-white text-sm border-ink-700">{toast}</div>
+      {restrictedComplaintModal && (
+        <div className="fixed inset-0 z-50 bg-ink-700/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setRestrictedComplaintModal(false)}>
+          <div className="card w-full max-w-md p-6 text-center space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-3xl">🔒</div>
+            <h3 className="font-bold text-xl text-ink-800">Active Booking Required</h3>
+            <p className="text-sm text-ink/60">
+              You can only file a complaint if you have an active PG booking for <strong>"{pg.name}"</strong>.
+            </p>
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 text-left">
+              💡 <strong>Note:</strong> Once your booking request is confirmed by the PG owner, you will be able to submit complaint tickets directly from your dashboard.
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setRestrictedComplaintModal(false)} className="btn-secondary flex-1">Close</button>
+              <button onClick={() => { setRestrictedComplaintModal(false); nav('/student/bookings'); }} className="btn-primary flex-1">View My Bookings</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

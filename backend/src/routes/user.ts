@@ -135,6 +135,78 @@ router.get('/bookings/me', async (req: AuthRequest, res) => {
   }
 });
 
+router.get('/active-bookings', async (req: AuthRequest, res) => {
+  try {
+    const bookings = await Booking.find({ userId: req.user!._id, status: 'confirmed' })
+      .populate('pgId', 'name city address pricePerMonth primaryImage')
+      .sort({ createdAt: -1 });
+    return res.json({ bookings });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed' });
+  }
+});
+
+router.get('/bookings/:id/cancellation-preview', async (req: AuthRequest, res) => {
+  try {
+    const booking = await Booking.findOne({ _id: req.params.id, userId: req.user!._id }).populate<{ pgId: any }>('pgId');
+    if (!booking) return res.status(404).json({ error: 'Booking not found' });
+
+    const pg = booking.pgId as any;
+    const now = new Date();
+    const start = new Date(booking.startDate);
+    const end = new Date(booking.endDate);
+    const totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    const pricePerMonth = pg?.pricePerMonth || 0;
+    const dailyRate = Math.round((pricePerMonth / 30) * 100) / 100;
+    const totalStayCost = dailyRate * totalDays;
+    const securityDeposit = pg?.securityDeposit || 0;
+    const totalPaid = totalStayCost + securityDeposit;
+
+    let daysUtilized = 0;
+    if (now < start) {
+      daysUtilized = 0;
+    } else if (now > end) {
+      daysUtilized = totalDays;
+    } else {
+      daysUtilized = Math.max(0, Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+
+    const usageCharge = Math.round(daysUtilized * dailyRate);
+    const unutilizedCost = Math.max(0, totalStayCost - usageCharge);
+    const cancellationCharge = daysUtilized === 0
+      ? Math.max(200, Math.round(totalStayCost * 0.10))
+      : Math.max(200, Math.round(unutilizedCost * 0.10));
+
+    const securityDepositRefund = securityDeposit;
+    const netRefundAmount = Math.max(0, totalPaid - usageCharge - cancellationCharge);
+
+    return res.json({
+      preview: {
+        bookingId: booking._id,
+        pgName: pg?.name || 'PG',
+        cancellationDate: now,
+        startDate: start,
+        endDate: end,
+        totalDays,
+        daysUtilized,
+        dailyRate,
+        totalStayCost,
+        securityDeposit,
+        totalPaid,
+        usageCharge,
+        cancellationCharge,
+        securityDepositRefund,
+        netRefundAmount,
+        policyNote: '10% cancellation charge applies to unutilized stay period. Days used are charged at standard daily rate.'
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to calculate cancellation charges' });
+  }
+});
+
 router.put('/bookings/:id/status', async (req: AuthRequest, res) => {
   try {
     const booking = await Booking.findById(req.params.id).populate<{ pgId: any }>('pgId');
@@ -145,6 +217,47 @@ router.put('/bookings/:id/status', async (req: AuthRequest, res) => {
 
     const prev = booking.status;
     booking.status = status;
+
+    if (status === 'cancelled') {
+      const pg = booking.pgId as any;
+      const now = new Date();
+      const start = new Date(booking.startDate);
+      const end = new Date(booking.endDate);
+      const totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+      const pricePerMonth = pg?.pricePerMonth || 0;
+      const dailyRate = Math.round((pricePerMonth / 30) * 100) / 100;
+      const totalStayCost = dailyRate * totalDays;
+      const securityDeposit = pg?.securityDeposit || 0;
+      const totalPaid = totalStayCost + securityDeposit;
+
+      let daysUtilized = 0;
+      if (now < start) {
+        daysUtilized = 0;
+      } else if (now > end) {
+        daysUtilized = totalDays;
+      } else {
+        daysUtilized = Math.max(0, Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+      }
+
+      const usageCharge = Math.round(daysUtilized * dailyRate);
+      const unutilizedCost = Math.max(0, totalStayCost - usageCharge);
+      const cancellationCharge = daysUtilized === 0
+        ? Math.max(200, Math.round(totalStayCost * 0.10))
+        : Math.max(200, Math.round(unutilizedCost * 0.10));
+
+      const securityDepositRefund = securityDeposit;
+      const netRefundAmount = Math.max(0, totalPaid - usageCharge - cancellationCharge);
+
+      booking.cancellationDetails = {
+        cancellationDate: now,
+        daysUtilized,
+        usageCharge,
+        cancellationCharge,
+        securityDepositRefund,
+        netRefundAmount
+      };
+    }
+
     await booking.save();
 
     if (prev !== status) {
@@ -192,14 +305,18 @@ router.post('/complaints', async (req: AuthRequest, res) => {
     const { pgId, type, description, priority, photoUrls } = req.body;
     
     // Check for active booking
-    const booking = await Booking.findOne({ 
+    const bookingFilter: any = { 
       userId: req.user!._id, 
-      pgId, 
       status: 'confirmed' 
-    });
+    };
+    if (pgId) {
+      bookingFilter.pgId = pgId;
+    }
+
+    const booking = await Booking.findOne(bookingFilter);
     
     if (!booking) {
-      return res.status(403).json({ error: 'You must have an active booking to file a complaint' });
+      return res.status(403).json({ error: 'You can only file a complaint if you have an active PG booking.' });
     }
 
     const complaint = await Complaint.create({

@@ -19,6 +19,10 @@ export interface IComplaint extends Document {
   priority: ComplaintPriority;
   photoUrls: string[];
   responses: IComplaintResponse[];
+  estimatedResolutionHours?: number;
+  estimatedResolutionDate?: Date;
+  ratingDeducted?: boolean;
+  ratingDeductionAmount?: number;
   resolvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -55,6 +59,10 @@ const ComplaintSchema: Schema = new Schema(
       default: 'open',
       index: true,
     },
+    estimatedResolutionHours: { type: Number },
+    estimatedResolutionDate: { type: Date },
+    ratingDeducted: { type: Boolean, default: false },
+    ratingDeductionAmount: { type: Number, default: 0 },
     resolvedAt: { type: Date },
   },
   { timestamps: true }

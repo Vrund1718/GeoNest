@@ -11,6 +11,7 @@ import { AuthRequest, requireAuth, requireRole } from '../middleware/auth';
 import { upload, uploadImage } from '../middleware/upload';
 import { fetchAndStoreNearbyPlaces } from '../services/nearbyPlaces';
 import { sendNotification } from '../utils/notifications';
+import { processOverdueComplaintPenalties } from '../services/ratingPenaltyService';
 
 const router = Router();
 
@@ -253,15 +254,72 @@ router.get('/complaints', async (req: AuthRequest, res) => {
   try {
     const owner = await getOwnerForUser(req.user!._id, req.user!.role);
     if (!owner) return res.json({ complaints: [] });
+    await processOverdueComplaintPenalties();
     const pgs = await PGListing.find({ ownerId: owner._id }, '_id');
     const complaints = await Complaint.find({ pgId: { $in: pgs.map((p) => p._id) } })
-      .populate('pgId', 'name city')
+      .populate('pgId', 'name city ratingPenalty')
       .populate('userId', 'name email')
       .sort({ createdAt: -1 });
     return res.json({ complaints });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Failed' });
+  }
+});
+
+router.put('/complaints/:id', async (req: AuthRequest, res) => {
+  try {
+    const owner = await getOwnerForUser(req.user!._id, req.user!.role);
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) return res.status(404).json({ error: 'Complaint not found' });
+    
+    if (req.user!.role !== 'admin') {
+      const pg = await PGListing.findById(complaint.pgId);
+      if (!pg || String(pg.ownerId) !== String(owner?._id)) {
+        return res.status(403).json({ error: 'Not your PG' });
+      }
+    }
+
+    const { status, responseMessage, estimatedResolutionHours } = req.body;
+    
+    if (status && ['open', 'in_progress', 'resolved', 'closed'].includes(status)) {
+      complaint.status = status;
+      if (status === 'resolved' || status === 'closed') {
+        complaint.resolvedAt = new Date();
+      }
+    }
+
+    if (estimatedResolutionHours != null && !isNaN(Number(estimatedResolutionHours))) {
+      const hours = Number(estimatedResolutionHours);
+      complaint.estimatedResolutionHours = hours;
+      complaint.estimatedResolutionDate = new Date(complaint.createdAt.getTime() + hours * 60 * 60 * 1000);
+    }
+
+    if (responseMessage && String(responseMessage).trim().length > 0) {
+      complaint.responses.push({
+        role: req.user!.role === 'admin' ? 'admin' : 'owner',
+        message: String(responseMessage).trim(),
+        createdAt: new Date(),
+      });
+    }
+
+    await complaint.save();
+
+    await processOverdueComplaintPenalties();
+
+    await sendNotification(
+      complaint.userId,
+      'complaint_status',
+      'Complaint Updated',
+      `Your complaint status is now "${complaint.status}".${estimatedResolutionHours ? ` Estimated resolution time: ${estimatedResolutionHours} hours.` : ''}`,
+      { type: 'complaint', id: complaint._id },
+      `/student/complaints#${complaint._id}`
+    );
+
+    return res.json({ complaint });
+  } catch (err: any) {
+    console.error(err);
+    return res.status(500).json({ error: err.message || 'Failed to update complaint' });
   }
 });
 
