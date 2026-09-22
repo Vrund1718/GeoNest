@@ -48,9 +48,7 @@ const App: React.FC = () => {
         <Route path="/signup" element={<GuestOnlyRoute><SignupPage /></GuestOnlyRoute>} />
 
         <Route path="/pg/:id" element={
-          <ProtectedRoute roles={['student', 'owner', 'admin']}>
-            <div className="min-h-screen bg-sand-50 p-4 md:p-6"><PGDetailRoute /></div>
-          </ProtectedRoute>
+          <div className="min-h-screen bg-sand-50 p-4 md:p-6"><PGDetailRoute /></div>
         } />
 
         <Route path="/student" element={
@@ -76,6 +74,7 @@ const App: React.FC = () => {
           <Route path="pg/:id/images" element={<OwnerPGFormPage />} />
           <Route path="bookings" element={<OwnerBookingsPage />} />
           <Route path="complaints" element={<OwnerComplaintsPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
 
@@ -86,6 +85,8 @@ const App: React.FC = () => {
           <Route path="verifications" element={<AdminPGVerificationPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="complaints" element={<AdminComplaintsPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

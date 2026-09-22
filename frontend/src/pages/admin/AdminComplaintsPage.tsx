@@ -50,9 +50,9 @@ export const AdminComplaintsPage: React.FC = () => {
                 <div>
                   <div className="font-semibold text-slate-800 flex items-center gap-2">
                     <span className="capitalize badge bg-slate-50 text-slate-700">{c.type.replace('_',' ')}</span>
-                    {(c.pgId as any)?.name}
+                    {(c.pgId as any)?.name || 'Accommodation'}
                   </div>
-                  <div className="text-xs text-slate-500 mt-0.5">Filed by {(c.userId as any)?.name || 'Unknown'} · {(c.userId as any)?.email} · {new Date(c.createdAt).toLocaleString()}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Filed by {(c.userId as any)?.name || 'Student'}{(c.userId as any)?.email ? ` (${(c.userId as any).email})` : ''} · {new Date(c.createdAt).toLocaleString()}</div>
                 </div>
                 <span className={`badge capitalize ${statusColor(c.status)}`}>{c.status.replace('_', ' ')}</span>
               </div>

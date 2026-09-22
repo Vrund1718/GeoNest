@@ -114,7 +114,8 @@ app.use('/auth', authRoutes);
 app.use('/owners', ownerRoutes);
 app.use('/admin', adminRoutes);
 app.use('/geo', geoRoutes);
-app.use('/pg', searchLimiter, pgRoutes);
+app.use('/pg/search', searchLimiter);
+app.use('/pg', pgRoutes);
 app.use('/recommendations', recLimiter, recRoutes);
 
 app.use('/api/auth/signup', authCredentialLimiter);
@@ -124,7 +125,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/owners', ownerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/geo', geoRoutes);
-app.use('/api/pg', searchLimiter, pgRoutes);
+app.use('/api/pg/search', searchLimiter);
+app.use('/api/pg', pgRoutes);
 app.use('/api/recommendations', recLimiter, recRoutes);
 
 app.use('/api', userRoutes);

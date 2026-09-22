@@ -91,6 +91,10 @@ export const PGDetailsPage: React.FC = () => {
   }, [id, user]);
 
   const book = async () => {
+    if (!user) {
+      nav('/login', { state: { from: `/pg/${id}` } });
+      return;
+    }
     if (!id || !bookDates.start || !bookDates.end) return showToast('Please select move-in and move-out dates');
     setBooking(true);
     setOverlapSuggestion(null);
@@ -113,6 +117,10 @@ export const PGDetailsPage: React.FC = () => {
   };
 
   const handleOpenComplaint = () => {
+    if (!user) {
+      nav('/login', { state: { from: `/pg/${id}` } });
+      return;
+    }
     if (user?.role === 'student' && !hasActiveBooking) {
       setRestrictedComplaintModal(true);
     } else {
@@ -121,6 +129,10 @@ export const PGDetailsPage: React.FC = () => {
   };
 
   const toggleWishlist = async () => {
+    if (!user) {
+      nav('/login', { state: { from: `/pg/${id}` } });
+      return;
+    }
     if (!id) return;
     setWishlisting(true);
     try {
@@ -299,23 +311,26 @@ export const PGDetailsPage: React.FC = () => {
               <div className="text-sm text-ink/55 text-center py-6">Be the first to review this PG.</div>
             ) : (
               <div className="space-y-4">
-                {reviews.map((r) => (
-                  <div key={r._id} className="border-b border-ink/10 pb-4 last:border-b-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-semibold flex items-center justify-center text-xs">
-                          {(r.userId as any).name?.[0]?.toUpperCase() || 'U'}
+                {reviews.map((r) => {
+                  const reviewerName = typeof r.userId === 'object' && r.userId ? (r.userId as any).name || 'Student' : 'Student';
+                  return (
+                    <div key={r._id} className="border-b border-ink/10 pb-4 last:border-b-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-semibold flex items-center justify-center text-xs">
+                            {reviewerName[0]?.toUpperCase() || 'U'}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold">{reviewerName}</div>
+                            <div className="text-xs text-ink/40">{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-sm font-semibold">{(r.userId as any).name}</div>
-                          <div className="text-xs text-ink/40">{new Date(r.createdAt).toLocaleDateString()}</div>
-                        </div>
+                        <RatingStars rating={r.rating} />
                       </div>
-                      <RatingStars rating={r.rating} />
+                      <p className="text-sm text-ink-600 mt-2">{r.text}</p>
                     </div>
-                    <p className="text-sm text-ink-600 mt-2">{r.text}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

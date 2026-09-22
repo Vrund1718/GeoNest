@@ -86,8 +86,9 @@ export const MyPGPage: React.FC = () => {
     if (complaintForm.description.length < 10) return showToast('Description too short');
     
     try {
+      const pgId = (activeBooking.pgId as PGListing)?._id || activeBooking.pgId;
       await api.post('/complaints', {
-        pgId: (activeBooking.pgId as PGListing)._id,
+        pgId,
         ...complaintForm
       });
       showToast('Complaint raised successfully!');
@@ -112,7 +113,7 @@ export const MyPGPage: React.FC = () => {
     );
   }
 
-  const pg = activeBooking?.pgId as PGListing;
+  const pg = (activeBooking?.pgId as PGListing) || null;
   const owner = pg?.ownerId as any;
 
   return (
@@ -128,7 +129,7 @@ export const MyPGPage: React.FC = () => {
               onChange={(e) => setActiveBooking(bookings.find(b => b._id === e.target.value) || null)}
             >
               {bookings.map(b => (
-                <option key={b._id} value={b._id}>{(b.pgId as PGListing).name} ({b.status})</option>
+                <option key={b._id} value={b._id}>{(b.pgId as PGListing)?.name || 'Accommodation'} ({b.status})</option>
               ))}
             </select>
           )
@@ -136,55 +137,59 @@ export const MyPGPage: React.FC = () => {
       />
 
       {/* Overview Card */}
-      <div className="card overflow-hidden">
-        <div className="flex flex-col md:flex-row">
-          <div className="w-full md:w-1/3 aspect-video md:aspect-auto bg-sand-100 overflow-hidden">
-            {pg.primaryImage ? (
-              <img src={pg.primaryImage} alt={pg.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-ink/20 text-5xl">🏠</div>
-            )}
-          </div>
-          <div className="p-6 flex-1 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-2xl font-bold text-ink-700">{pg.name}</h2>
-                <span className={`badge ${activeBooking?.status === 'confirmed' ? 'bg-sage/10 text-sage' : 'bg-sand-200 text-ink/50'}`}>
-                  {activeBooking?.status.toUpperCase()}
-                </span>
-              </div>
-              <p className="text-sm text-ink/55 flex items-center gap-1 mb-4">
-                <span>📍</span> {pg.address}, {pg.city}
-              </p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-sand-200">
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Stay Dates</div>
-                  <div className="text-sm font-medium">{new Date(activeBooking!.startDate).toLocaleDateString()} - {new Date(activeBooking!.endDate).toLocaleDateString()}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Monthly Rent</div>
-                  <div className="text-sm font-bold text-indigo-700">₹{pg.pricePerMonth.toLocaleString()}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Room Type</div>
-                  <div className="text-sm font-medium capitalize">{pg.genderPreference} Sharing</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Owner Contact</div>
-                  <div className="text-sm font-medium">{owner?.userId?.phone || 'Not available'}</div>
-                </div>
-              </div>
+      {pg ? (
+        <div className="card overflow-hidden">
+          <div className="flex flex-col md:flex-row">
+            <div className="w-full md:w-1/3 aspect-video md:aspect-auto bg-sand-100 overflow-hidden">
+              {pg.primaryImage ? (
+                <img src={pg.primaryImage} alt={pg.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-ink/20 text-5xl">🏠</div>
+              )}
             </div>
+            <div className="p-6 flex-1 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-2xl font-bold text-ink-700">{pg.name}</h2>
+                  <span className={`badge ${activeBooking?.status === 'confirmed' ? 'bg-sage/10 text-sage' : 'bg-sand-200 text-ink/50'}`}>
+                    {activeBooking?.status.toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-sm text-ink/55 flex items-center gap-1 mb-4">
+                  <span>📍</span> {pg.address}, {pg.city}
+                </p>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-sand-200">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Stay Dates</div>
+                    <div className="text-sm font-medium">{activeBooking?.startDate ? new Date(activeBooking.startDate).toLocaleDateString() : 'N/A'} - {activeBooking?.endDate ? new Date(activeBooking.endDate).toLocaleDateString() : 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Monthly Rent</div>
+                    <div className="text-sm font-bold text-indigo-700">₹{pg.pricePerMonth?.toLocaleString() || 0}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Room Type</div>
+                    <div className="text-sm font-medium capitalize">{pg.genderPreference} Sharing</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Owner Contact</div>
+                    <div className="text-sm font-medium">{owner?.userId?.phone || 'Not available'}</div>
+                  </div>
+                </div>
+              </div>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button onClick={() => setShowPay(true)} className="btn-primary flex-1">Pay Rent / Dues</button>
-              <button onClick={() => setShowRenew(true)} className="btn-secondary flex-1">Renew / Extend Stay</button>
-              <button onClick={() => setShowComplaint(true)} className="btn-secondary flex-1">Raise Complaint</button>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button onClick={() => setShowPay(true)} className="btn-primary flex-1">Pay Rent / Dues</button>
+                <button onClick={() => setShowRenew(true)} className="btn-secondary flex-1">Renew / Extend Stay</button>
+                <button onClick={() => setShowComplaint(true)} className="btn-secondary flex-1">Raise Complaint</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="card p-6 text-center text-ink/50">Accommodation details unavailable.</div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payment History */}

@@ -31,7 +31,11 @@ export const NotificationsPage: React.FC = () => {
   useEffect(() => { load(); }, []);
 
   const markAll = async () => {
-    for (const n of items) if (!n.isRead) await api.put(`/notifications/${n._id}/read`);
+    try {
+      await api.put('/notifications/mark-all-read');
+      setItems(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnread(0);
+    } catch {}
     load();
   };
 

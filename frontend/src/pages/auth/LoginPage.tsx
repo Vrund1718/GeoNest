@@ -178,15 +178,17 @@ export const LoginPage: React.FC = () => {
               </button>
             </form>
 
-            <div className="mt-7 pt-5 border-t border-ink/10">
-              <p className="text-[11px] uppercase tracking-wider text-ink/45 font-semibold">Try a demo account</p>
-              <p className="text-xs text-ink/55 mt-1">pw: <code className="font-mono bg-sand-100 px-1 rounded">StrongPass1</code></p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" onClick={() => fillDemo('student')} className="btn-secondary text-xs py-1.5 px-3 rounded-lg">Student</button>
-                <button type="button" onClick={() => fillDemo('owner')} className="btn-secondary text-xs py-1.5 px-3 rounded-lg">Owner</button>
-                <button type="button" onClick={() => fillDemo('admin')} className="btn-secondary text-xs py-1.5 px-3 rounded-lg">Admin</button>
+            {import.meta.env.DEV && (
+              <div className="mt-7 pt-5 border-t border-ink/10">
+                <p className="text-[11px] uppercase tracking-wider text-ink/45 font-semibold">Try a demo account (Dev only)</p>
+                <p className="text-xs text-ink/55 mt-1">pw: <code className="font-mono bg-sand-100 px-1 rounded">StrongPass1</code></p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => fillDemo('student')} className="btn-secondary text-xs py-1.5 px-3 rounded-lg">Student</button>
+                  <button type="button" onClick={() => fillDemo('owner')} className="btn-secondary text-xs py-1.5 px-3 rounded-lg">Owner</button>
+                  <button type="button" onClick={() => fillDemo('admin')} className="btn-secondary text-xs py-1.5 px-3 rounded-lg">Admin</button>
+                </div>
               </div>
-            </div>
+            )}
 
             <p className="text-sm text-ink/70 mt-8 text-center">
               New here? <Link to="/signup" className="link font-semibold">Create an account</Link>

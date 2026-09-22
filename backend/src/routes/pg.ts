@@ -33,6 +33,7 @@ router.get('/search', async (req, res) => {
 
     const baseMatch: any = {
       status: 'active',
+      isVerified: true,
     };
 
     let centerLat = 23.0225;
@@ -53,7 +54,18 @@ router.get('/search', async (req, res) => {
           },
         });
       } else {
-        pipeline.push({ $match: baseMatch });
+        const searchRegex = new RegExp(query.trim(), 'i');
+        pipeline.push({
+          $match: {
+            ...baseMatch,
+            $or: [
+              { city: searchRegex },
+              { name: searchRegex },
+              { collegeName: searchRegex },
+              { address: searchRegex },
+            ],
+          },
+        });
       }
     } else {
       pipeline.push({ $match: baseMatch });
@@ -116,8 +128,6 @@ router.get('/search', async (req, res) => {
       scored.sort((a, b) => b.score - a.score);
       results = scored.map((s) => ({ ...s.pg, _score: s.score }));
     }
-
-    await processOverdueComplaintPenalties();
 
     const formatted = results.map((r) => {
       const reviews = r.reviews || [];
@@ -221,7 +231,6 @@ router.get('/:id', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(404).json({ error: 'Invalid PG ID' });
     }
-    await processOverdueComplaintPenalties();
 
     const pg = await PGListing.findById(id).populate('amenities');
     if (!pg || pg.status === 'deleted') {
@@ -278,11 +287,14 @@ router.get('/:id/nearby-places', async (req, res) => {
 
 router.get('/:id/booked-dates', async (req, res) => {
   try {
+    const pg = await PGListing.findById(req.params.id);
+    if (!pg) return res.status(404).json({ error: 'PG not found' });
+
     const bookings = await Booking.find({
       pgId: req.params.id,
-      status: { $in: ['requested', 'confirmed'] },
+      status: 'confirmed',
     }).select('startDate endDate status');
-    return res.json({ bookings });
+    return res.json({ bookings, totalRooms: pg.totalRooms, availableRooms: pg.availableRooms });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Failed to fetch booked dates' });
@@ -308,17 +320,16 @@ router.post('/:id/book', requireAuth, validate(bookingSchema), async (req: AuthR
     });
     if (existingUserBooking) return res.status(400).json({ error: 'You already have an active booking for this PG' });
 
-    // Check for overlapping bookings by date range
-    const overlapping = await Booking.find({
+    // Check for capacity: count confirmed overlapping bookings
+    const overlappingConfirmed = await Booking.find({
       pgId: pg._id,
-      status: { $in: ['requested', 'confirmed'] },
-      $or: [
-        { startDate: { $lt: end }, endDate: { $gt: start } },
-      ],
+      status: 'confirmed',
+      startDate: { $lt: end },
+      endDate: { $gt: start },
     });
 
-    if (overlapping.length > 0) {
-      const maxEndTime = Math.max(...overlapping.map((b) => new Date(b.endDate).getTime()));
+    if (overlappingConfirmed.length >= pg.totalRooms) {
+      const maxEndTime = Math.max(...overlappingConfirmed.map((b) => new Date(b.endDate).getTime()));
       const nextAvailStart = new Date(maxEndTime);
       nextAvailStart.setDate(nextAvailStart.getDate() + 1);
 
@@ -327,16 +338,9 @@ router.post('/:id/book', requireAuth, validate(bookingSchema), async (req: AuthR
 
       const toISODate = (d: Date) => d.toISOString().split('T')[0];
 
-      const overlapStartFmt = new Date(overlapping[0].startDate).toLocaleDateString();
-      const overlapEndFmt = new Date(overlapping[0].endDate).toLocaleDateString();
-
       return res.status(400).json({
-        error: `This PG is unavailable for the selected dates as it overlaps with an existing booking (${overlapStartFmt} to ${overlapEndFmt}).`,
+        error: `All ${pg.totalRooms} rooms in this PG are booked for the selected dates.`,
         isOverlapping: true,
-        overlappingRange: {
-          start: toISODate(overlapping[0].startDate),
-          end: toISODate(overlapping[0].endDate),
-        },
         nextAvailableDate: toISODate(nextAvailStart),
         suggestedRange: {
           start: toISODate(nextAvailStart),
@@ -402,6 +406,17 @@ router.post('/:id/reviews', requireAuth, validate(reviewSchema), async (req: Aut
   try {
     const pg = await PGListing.findById(req.params.id);
     if (!pg) return res.status(404).json({ error: 'PG not found' });
+
+    // Restrict reviews to users who have a confirmed or completed stay
+    const hasStayed = await Booking.findOne({
+      pgId: pg._id,
+      userId: req.user!._id,
+      status: { $in: ['confirmed', 'completed'] },
+    });
+    if (!hasStayed && req.user!.role !== 'admin') {
+      return res.status(403).json({ error: 'You can only review a PG where you have had a confirmed stay.' });
+    }
+
     const existing = await Review.findOne({ pgId: pg._id, userId: req.user!._id });
     if (existing) return res.status(400).json({ error: 'You have already reviewed this PG' });
     const { rating, text } = req.body;

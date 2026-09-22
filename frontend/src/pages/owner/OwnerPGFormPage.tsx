@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../../lib/api';
@@ -25,8 +25,15 @@ function LocationPicker({ onPick }: { onPick: (lat: number, lng: number) => void
 export const OwnerPGFormPage: React.FC = () => {
   const { id } = useParams();
   const nav = useNavigate();
+  const location = useLocation();
   const editMode = Boolean(id);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => (location.pathname.endsWith('/images') ? 4 : 0));
+
+  useEffect(() => {
+    if (location.pathname.endsWith('/images')) {
+      setStep(4);
+    }
+  }, [location.pathname]);
   const [form, setForm] = useState<any>({
     name: '', address: '', city: 'Ahmedabad', collegeName: '',
     totalRooms: 10, availableRooms: 10,

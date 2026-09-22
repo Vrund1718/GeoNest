@@ -182,11 +182,11 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
                     </button>
                   ))}
                 </div>
-                <Link to={user?.role === 'student' ? '/student/notifications' : '/notifications'} onClick={() => setShowNotif(false)} className="block text-center text-sm text-indigo-600 hover:bg-sand-50 py-2 border-t border-ink/10 font-semibold underline-offset-4 hover:underline transition-colors">View all</Link>
+                <Link to={user?.role === 'student' ? '/student/notifications' : user?.role === 'owner' ? '/owner/notifications' : '/admin/notifications'} onClick={() => setShowNotif(false)} className="block text-center text-sm text-indigo-600 hover:bg-sand-50 py-2 border-t border-ink/10 font-semibold underline-offset-4 hover:underline transition-colors">View all</Link>
               </div>
             )}
           </div>
-          <Link to={user?.role === 'student' ? '/student/profile' : '/profile'} className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 font-semibold grid place-items-center text-sm hover:bg-indigo-200 transition shadow-sm">{initials}</Link>
+          <Link to={user?.role === 'student' ? '/student/profile' : user?.role === 'owner' ? '/owner/profile' : '/admin/profile'} className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 font-semibold grid place-items-center text-sm hover:bg-indigo-200 transition shadow-sm">{initials}</Link>
         </header>
         <main className="flex-1 p-6 overflow-auto">
           <Outlet />

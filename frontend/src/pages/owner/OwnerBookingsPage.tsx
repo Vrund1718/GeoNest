@@ -49,43 +49,47 @@ export const OwnerBookingsPage: React.FC = () => {
                 <th className="table-header">Actions</th>
               </tr></thead>
               <tbody className="divide-y divide-slate-100">
-                {items.map((b) => (
-                  <tr key={b._id} id={`booking-${b._id}`} className="hover:bg-surface-50 transition-all duration-500">
-                    <td className="table-cell">
-                      <div>
-                        <div className="font-medium text-slate-800">{(b.userId as any).name}</div>
-                        <div className="text-xs text-slate-500">{(b.userId as any).email}</div>
-                        <div className="text-xs text-slate-400">{(b.userId as any).phone}</div>
-                      </div>
-                    </td>
-                    <td className="table-cell">
-                      <div>
-                        <div className="font-medium">{(b.pgId as any).name}</div>
-                        <div className="text-xs text-slate-500">{(b.pgId as any).city}</div>
-                      </div>
-                    </td>
-                    <td className="table-cell"><span className={`badge capitalize ${statusBadge(b.status)}`}>{b.status.replace('_', ' ')}</span></td>
-                    <td className="table-cell text-xs text-slate-600">
-                      <div>{new Date(b.startDate).toLocaleDateString()}</div>
-                      <div>→ {new Date(b.endDate).toLocaleDateString()}</div>
-                    </td>
-                    <td className="table-cell text-xs text-slate-500">{new Date(b.createdAt).toLocaleDateString()}</td>
-                    <td className="table-cell">
-                      {b.status === 'requested' && (
-                        <div className="flex gap-2 justify-end">
-                          <button onClick={() => setStatus(b._id, 'confirmed')} className="!py-1 !px-2.5 text-xs btn-primary">Confirm</button>
-                          <button onClick={() => setStatus(b._id, 'cancelled')} className="!py-1 !px-2.5 text-xs btn-secondary">Reject</button>
+                {items.map((b) => {
+                  const student = typeof b.userId === 'object' && b.userId ? (b.userId as any) : null;
+                  const pg = typeof b.pgId === 'object' && b.pgId ? (b.pgId as any) : null;
+                  return (
+                    <tr key={b._id} id={`booking-${b._id}`} className="hover:bg-surface-50 transition-all duration-500">
+                      <td className="table-cell">
+                        <div>
+                          <div className="font-medium text-slate-800">{student?.name || 'Student'}</div>
+                          <div className="text-xs text-slate-500">{student?.email || 'N/A'}</div>
+                          {student?.phone && <div className="text-xs text-slate-400">{student.phone}</div>}
                         </div>
-                      )}
-                      {b.status === 'confirmed' && (
-                        <div className="flex gap-2 justify-end">
-                          <button onClick={() => setStatus(b._id, 'completed')} className="!py-1 !px-2.5 text-xs btn-secondary">Mark complete</button>
-                          <button onClick={() => setStatus(b._id, 'cancelled')} className="!py-1 !px-2.5 text-xs btn-danger">Cancel</button>
+                      </td>
+                      <td className="table-cell">
+                        <div>
+                          <div className="font-medium">{pg?.name || 'PG Accommodation'}</div>
+                          <div className="text-xs text-slate-500">{pg?.city || ''}</div>
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="table-cell"><span className={`badge capitalize ${statusBadge(b.status)}`}>{b.status.replace('_', ' ')}</span></td>
+                      <td className="table-cell text-xs text-slate-600">
+                        <div>{b.startDate ? new Date(b.startDate).toLocaleDateString() : 'N/A'}</div>
+                        <div>→ {b.endDate ? new Date(b.endDate).toLocaleDateString() : 'N/A'}</div>
+                      </td>
+                      <td className="table-cell text-xs text-slate-500">{b.createdAt ? new Date(b.createdAt).toLocaleDateString() : 'N/A'}</td>
+                      <td className="table-cell">
+                        {b.status === 'requested' && (
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => setStatus(b._id, 'confirmed')} className="!py-1 !px-2.5 text-xs btn-primary">Confirm</button>
+                            <button onClick={() => setStatus(b._id, 'cancelled')} className="!py-1 !px-2.5 text-xs btn-secondary">Reject</button>
+                          </div>
+                        )}
+                        {b.status === 'confirmed' && (
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => setStatus(b._id, 'completed')} className="!py-1 !px-2.5 text-xs btn-secondary">Mark complete</button>
+                            <button onClick={() => setStatus(b._id, 'cancelled')} className="!py-1 !px-2.5 text-xs btn-danger">Cancel</button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

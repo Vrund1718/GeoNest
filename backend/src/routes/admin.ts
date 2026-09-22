@@ -36,11 +36,19 @@ router.put('/pg/:id/verify', async (req: AuthRequest, res) => {
     if (!pg) return res.status(404).json({ error: 'PG not found' });
 
     pg.isVerified = Boolean(verified);
+    if (!verified) {
+      pg.status = 'inactive';
+    } else {
+      pg.status = 'active';
+    }
     await pg.save();
 
     if (verified) {
       const [lng, lat] = pg.location.coordinates;
-      await fetchAndStoreNearbyPlaces(pg._id, lat, lng);
+      // Fetch nearby places in background without stalling HTTP response
+      fetchAndStoreNearbyPlaces(pg._id, lat, lng).catch((err) => {
+        console.error('Failed to fetch nearby places in background:', err);
+      });
     }
 
     const ownerUserId = (pg.ownerId as any)?.userId?._id;

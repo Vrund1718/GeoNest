@@ -18,11 +18,11 @@ const router = Router();
 router.use(requireAuth, requireRole(['owner', 'admin']));
 
 const getOwnerForUser = async (userId: mongoose.Types.ObjectId, role: string) => {
-  if (role === 'admin') {
-    const o = await Owner.findOne();
-    return o;
+  let o = await Owner.findOne({ userId });
+  if (!o && role === 'admin') {
+    o = await Owner.create({ userId, verificationStatus: 'verified' });
   }
-  return Owner.findOne({ userId });
+  return o;
 };
 
 router.post('/pg', async (req: AuthRequest, res) => {
@@ -68,8 +68,10 @@ router.post('/pg', async (req: AuthRequest, res) => {
 router.get('/pg', async (req: AuthRequest, res) => {
   try {
     const owner = await getOwnerForUser(req.user!._id, req.user!.role);
-    if (!owner) return res.json({ pgs: [] });
-    const filter: any = { ownerId: owner._id, status: { $ne: 'deleted' } };
+    if (!owner && req.user!.role !== 'admin') return res.json({ pgs: [] });
+    const filter: any = req.user!.role === 'admin'
+      ? { status: { $ne: 'deleted' } }
+      : { ownerId: owner?._id, status: { $ne: 'deleted' } };
     const pgs = await PGListing.find(filter).sort({ createdAt: -1 }).populate('amenities');
     const counts = await Image.aggregate([
       { $match: { pgId: { $in: pgs.map((p) => p._id) } } },
@@ -196,9 +198,13 @@ router.post('/pg/:id/images', upload.array('images', 10), async (req: AuthReques
 router.get('/bookings', async (req: AuthRequest, res) => {
   try {
     const owner = await getOwnerForUser(req.user!._id, req.user!.role);
-    if (!owner) return res.json({ bookings: [] });
-    const pgs = await PGListing.find({ ownerId: owner._id }, '_id');
-    const bookings = await Booking.find({ pgId: { $in: pgs.map((p) => p._id) } })
+    let filter: any = {};
+    if (req.user!.role !== 'admin') {
+      if (!owner) return res.json({ bookings: [] });
+      const pgs = await PGListing.find({ ownerId: owner._id }, '_id');
+      filter = { pgId: { $in: pgs.map((p) => p._id) } };
+    }
+    const bookings = await Booking.find(filter)
       .populate('pgId', 'name city')
       .populate('userId', 'name email phone')
       .sort({ createdAt: -1 });
@@ -224,7 +230,15 @@ router.put('/bookings/:id/status', async (req: AuthRequest, res) => {
     const prev = booking.status;
     booking.status = status;
     await booking.save();
+
     if (prev !== status) {
+      const targetPgId = (booking.pgId as any)?._id || booking.pgId;
+      if (status === 'confirmed' && prev !== 'confirmed') {
+        await PGListing.findByIdAndUpdate(targetPgId, { $inc: { availableRooms: -1 } });
+      } else if (prev === 'confirmed' && (status === 'cancelled' || status === 'completed')) {
+        await PGListing.findByIdAndUpdate(targetPgId, { $inc: { availableRooms: 1 } });
+      }
+
       const title = status === 'confirmed' ? 'Booking Confirmed!' :
         status === 'cancelled' ? 'Booking Cancelled' :
         status === 'completed' ? 'Booking Completed' : 'Booking Updated';
@@ -253,10 +267,13 @@ router.put('/bookings/:id/status', async (req: AuthRequest, res) => {
 router.get('/complaints', async (req: AuthRequest, res) => {
   try {
     const owner = await getOwnerForUser(req.user!._id, req.user!.role);
-    if (!owner) return res.json({ complaints: [] });
-    await processOverdueComplaintPenalties();
-    const pgs = await PGListing.find({ ownerId: owner._id }, '_id');
-    const complaints = await Complaint.find({ pgId: { $in: pgs.map((p) => p._id) } })
+    let filter: any = {};
+    if (req.user!.role !== 'admin') {
+      if (!owner) return res.json({ complaints: [] });
+      const pgs = await PGListing.find({ ownerId: owner._id }, '_id');
+      filter = { pgId: { $in: pgs.map((p) => p._id) } };
+    }
+    const complaints = await Complaint.find(filter)
       .populate('pgId', 'name city ratingPenalty')
       .populate('userId', 'name email')
       .sort({ createdAt: -1 });

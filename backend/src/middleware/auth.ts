@@ -45,8 +45,16 @@ export const clearAuthCookies = (res: Response) => {
 };
 
 export const extractTokens = (req: Request) => {
-  const access = req.cookies?.access_token as string | undefined;
+  let access = req.cookies?.access_token as string | undefined;
   const refresh = req.cookies?.refresh_token as string | undefined;
+
+  if (!access && req.headers.authorization) {
+    const parts = req.headers.authorization.split(' ');
+    if (parts.length === 2 && /^Bearer$/i.test(parts[0])) {
+      access = parts[1].trim();
+    }
+  }
+
   return { access, refresh };
 };
 

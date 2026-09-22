@@ -18,7 +18,7 @@ export const signUpSchema = z.object({
     email: z.string().email('Invalid email format'),
     phone: indianPhone,
     password: strongPassword,
-    role: z.enum(['student', 'owner', 'admin']),
+    role: z.enum(['student', 'owner']),
     phoneVerificationToken: z.string().min(1, 'Phone verification token is required'),
   }),
 });

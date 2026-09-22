@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import jwt from 'jsonwebtoken';
+import { config } from '../config';
+import { normalizeIndianPhone } from '../utils/phone';
 import Booking from '../models/Booking';
 import Wishlist from '../models/Wishlist';
 import Complaint from '../models/Complaint';
@@ -159,6 +162,30 @@ router.get('/bookings/:id/cancellation-preview', async (req: AuthRequest, res) =
     const totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
     const pricePerMonth = pg?.pricePerMonth || 0;
     const dailyRate = Math.round((pricePerMonth / 30) * 100) / 100;
+
+    if (booking.status === 'requested') {
+      return res.json({
+        preview: {
+          bookingId: booking._id,
+          pgName: pg?.name || 'PG',
+          cancellationDate: now,
+          startDate: start,
+          endDate: end,
+          totalDays,
+          daysUtilized: 0,
+          dailyRate,
+          totalStayCost: 0,
+          securityDeposit: 0,
+          totalPaid: 0,
+          usageCharge: 0,
+          cancellationCharge: 0,
+          securityDepositRefund: 0,
+          netRefundAmount: 0,
+          policyNote: 'Booking request was not yet confirmed or paid. No cancellation charges apply.'
+        }
+      });
+    }
+
     const totalStayCost = dailyRate * totalDays;
     const securityDeposit = pg?.securityDeposit || 0;
     const totalPaid = totalStayCost + securityDeposit;
@@ -211,14 +238,26 @@ router.put('/bookings/:id/status', async (req: AuthRequest, res) => {
   try {
     const booking = await Booking.findById(req.params.id).populate<{ pgId: any }>('pgId');
     if (!booking) return res.status(404).json({ error: 'Not found' });
+
+    // Enforce ownership: student can only manage their own booking
+    if (String(booking.userId) !== String(req.user!._id)) {
+      return res.status(403).json({ error: 'Access denied: not your booking' });
+    }
+
     const { status } = req.body;
-    const valid = ['requested', 'confirmed', 'cancelled', 'completed'];
-    if (!valid.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+    // Students can only cancel their own bookings. Confirming or completing is strictly owner/admin action.
+    if (status !== 'cancelled') {
+      return res.status(403).json({ error: 'Students can only cancel their bookings' });
+    }
 
     const prev = booking.status;
-    booking.status = status;
+    if (prev === 'cancelled') {
+      return res.status(400).json({ error: 'Booking is already cancelled' });
+    }
 
-    if (status === 'cancelled') {
+    booking.status = 'cancelled';
+
+    if (prev === 'confirmed') {
       const pg = booking.pgId as any;
       const now = new Date();
       const start = new Date(booking.startDate);
@@ -256,31 +295,33 @@ router.put('/bookings/:id/status', async (req: AuthRequest, res) => {
         securityDepositRefund,
         netRefundAmount
       };
+
+      // Release room back to inventory
+      if (pg?._id) {
+        await PGListing.findByIdAndUpdate(pg._id, { $inc: { availableRooms: 1 } });
+      }
+    } else {
+      booking.cancellationDetails = {
+        cancellationDate: new Date(),
+        daysUtilized: 0,
+        usageCharge: 0,
+        cancellationCharge: 0,
+        securityDepositRefund: 0,
+        netRefundAmount: 0
+      };
     }
 
     await booking.save();
 
-    if (prev !== status) {
-      const title =
-        status === 'confirmed' ? 'Booking Confirmed!' :
-        status === 'cancelled' ? 'Booking Cancelled' :
-        status === 'completed' ? 'Booking Completed' : 'Booking Updated';
-      const msg =
-        status === 'confirmed'
-          ? `Your booking for "${(booking.pgId as any)?.name || 'your PG'}" is confirmed!`
-          : status === 'cancelled'
-          ? `Your booking for "${(booking.pgId as any)?.name || 'your PG'}" has been cancelled.`
-          : `Your booking status has been updated to ${status}.`;
-      const notifType = status === 'confirmed' ? 'booking_confirm' : status === 'cancelled' ? 'booking_cancel' : 'general';
-      await sendNotification(
-        booking.userId,
-        notifType as any,
-        title,
-        msg,
-        { type: 'booking', id: booking._id },
-        `/student/bookings#${booking._id}`
-      );
-    }
+    await sendNotification(
+      booking.userId,
+      'booking_cancel',
+      'Booking Cancelled',
+      `Your booking for "${(booking.pgId as any)?.name || 'your PG'}" has been cancelled.`,
+      { type: 'booking', id: booking._id },
+      `/student/bookings#${booking._id}`
+    );
+
     return res.json({ booking });
   } catch (err) {
     console.error(err);
@@ -375,6 +416,16 @@ router.get('/notifications', async (req: AuthRequest, res) => {
   }
 });
 
+router.put('/notifications/mark-all-read', async (req: AuthRequest, res) => {
+  try {
+    await Notification.updateMany({ userId: req.user!._id, isRead: false }, { isRead: true });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to mark all notifications as read' });
+  }
+});
+
 router.put('/notifications/:id/read', async (req: AuthRequest, res) => {
   try {
     const notification = await Notification.findOneAndUpdate(
@@ -392,11 +443,31 @@ router.put('/notifications/:id/read', async (req: AuthRequest, res) => {
 
 router.put('/profile', async (req: AuthRequest, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name, phone, phoneVerificationToken } = req.body;
     const u = await User.findById(req.user!._id);
     if (!u) return res.status(404).json({ error: 'Not found' });
     if (name != null && String(name).trim().length >= 2) u.name = String(name).trim();
-    if (phone != null && String(phone).trim().length >= 10) u.phone = String(phone).trim();
+
+    if (phone != null && String(phone).trim() !== u.phone) {
+      const cleanPhone = String(phone).trim();
+      const normPhone = normalizeIndianPhone(cleanPhone);
+      if (!normPhone) {
+        return res.status(400).json({ error: 'Invalid phone format. Must be a valid 10-digit Indian number.' });
+      }
+      if (!phoneVerificationToken) {
+        return res.status(400).json({ error: 'Changing phone number requires OTP verification.' });
+      }
+      try {
+        const decoded = jwt.verify(phoneVerificationToken, config.otpTokenSecret) as any;
+        if (!decoded.verified || decoded.phone !== normPhone) {
+          return res.status(400).json({ error: 'Phone verification token is invalid or does not match phone number.' });
+        }
+        u.phone = normPhone;
+      } catch {
+        return res.status(400).json({ error: 'Invalid or expired phone verification token.' });
+      }
+    }
+
     await u.save();
     const safe: any = u.toObject(); delete safe.hashedPassword;
     return res.json({ user: safe });

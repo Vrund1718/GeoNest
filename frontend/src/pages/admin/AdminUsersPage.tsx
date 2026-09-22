@@ -53,9 +53,9 @@ export const AdminUsersPage: React.FC = () => {
                   <tr key={u._id} className="hover:bg-surface-50">
                     <td className="table-cell">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-brand-100 text-brand-700 font-semibold text-sm flex items-center justify-center">{u.name[0]}</div>
+                        <div className="w-9 h-9 rounded-full bg-brand-100 text-brand-700 font-semibold text-sm flex items-center justify-center">{(u.name || 'U')[0]?.toUpperCase()}</div>
                         <div>
-                          <div className="font-medium text-slate-800">{u.name}</div>
+                          <div className="font-medium text-slate-800">{u.name || 'User'}</div>
                           <div className="text-xs text-slate-500">{u.email}</div>
                         </div>
                       </div>

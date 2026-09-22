@@ -119,7 +119,7 @@ export const AdminPGVerificationPage: React.FC = () => {
                 <div>
                   <h4 className="font-semibold mb-2">Location</h4>
                   <div className="h-64 rounded-lg overflow-hidden border border-slate-200">
-                    <MapContainer center={[selected.location.coordinates[1], selected.location.coordinates[0]]} zoom={16}>
+                    <MapContainer key={selected._id} center={[selected.location.coordinates[1], selected.location.coordinates[0]]} zoom={16}>
                       <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                       {indiaGeoJson && (
                         <GeoJSON 

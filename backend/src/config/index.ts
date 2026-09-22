@@ -26,3 +26,16 @@ export const config = {
 export const isCloudinaryEnabled = Boolean(
   config.cloudinary.cloudName && config.cloudinary.apiKey && config.cloudinary.apiSecret
 );
+
+if (config.nodeEnv === 'production') {
+  const insecureSecrets = [
+    { name: 'JWT_ACCESS_SECRET', val: config.jwtAccessSecret, defaultVal: 'dev-access-secret' },
+    { name: 'JWT_REFRESH_SECRET', val: config.jwtRefreshSecret, defaultVal: 'dev-refresh-secret' },
+    { name: 'OTP_TOKEN_SECRET', val: config.otpTokenSecret, defaultVal: 'dev-otp-secret' },
+  ];
+  for (const s of insecureSecrets) {
+    if (!s.val || s.val === s.defaultVal) {
+      throw new Error(`[SECURITY FATAL] ${s.name} must be set to a secure random string in production!`);
+    }
+  }
+}

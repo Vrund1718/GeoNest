@@ -1,6 +1,3 @@
-import dns from 'dns';
-dns.setServers(['8.8.8.8']);
-
 import app from './app';
 import { config } from './config';
 import { connectDB } from './config/db';
