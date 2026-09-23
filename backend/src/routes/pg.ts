@@ -453,31 +453,47 @@ router.get('/:id/reviews', async (req, res) => {
 
 router.post('/:id/complaints', requireAuth, validate(complaintSchema), async (req: AuthRequest, res) => {
   try {
-    const pg = await PGListing.findById(req.params.id);
+    const pg = await PGListing.findById(req.params.id).populate<{ ownerId: any }>('ownerId');
     if (!pg) return res.status(404).json({ error: 'PG not found' });
 
-    // Restrict complaint filing to active (confirmed) bookings
-    const activeBooking = await Booking.findOne({
+    // Allow registered students with requested, confirmed, or completed bookings
+    const registeredBooking = await Booking.findOne({
       pgId: pg._id,
       userId: req.user!._id,
-      status: 'confirmed',
+      status: { $in: ['requested', 'confirmed', 'completed'] },
     });
-    if (!activeBooking) {
-      return res.status(403).json({ error: 'You can only file a complaint if you have an active PG booking.' });
+    if (!registeredBooking && req.user!.role !== 'admin') {
+      return res.status(403).json({ error: 'You can only file a complaint for a PG where you have registered or stayed.' });
     }
 
-    const { type, description } = req.body;
+    const { type, description, priority, photoUrls } = req.body;
     const complaint = await Complaint.create({
       userId: req.user!._id,
       pgId: pg._id,
       type,
       description,
+      priority: priority || 'medium',
+      photoUrls: photoUrls || [],
       status: 'open',
     });
+
+    // Notify owner
+    const ownerUserId = (pg.ownerId as any)?.userId;
+    if (ownerUserId) {
+      await sendNotification(
+        ownerUserId,
+        'complaint_status',
+        'New Complaint Filed',
+        `${req.user!.name} raised a ${priority || 'medium'} priority complaint for "${pg.name}".`,
+        { type: 'complaint', id: complaint._id },
+        `/owner/complaints#${complaint._id}`
+      );
+    }
+
     return res.status(201).json({ complaint });
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    return res.status(500).json({ error: 'Failed' });
+    return res.status(500).json({ error: err.message || 'Failed to file complaint' });
   }
 });
 

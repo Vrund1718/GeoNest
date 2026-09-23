@@ -18,7 +18,7 @@ router.use(requireAuth);
 
 router.get('/my-pg', async (req: AuthRequest, res) => {
   try {
-    const bookings = await Booking.find({ userId: req.user!._id, status: { $in: ['confirmed', 'completed'] } })
+    const bookings = await Booking.find({ userId: req.user!._id, status: { $in: ['requested', 'confirmed', 'completed'] } })
       .populate({
         path: 'pgId',
         populate: { path: 'ownerId', populate: { path: 'userId', select: 'name email phone' } }
@@ -140,7 +140,7 @@ router.get('/bookings/me', async (req: AuthRequest, res) => {
 
 router.get('/active-bookings', async (req: AuthRequest, res) => {
   try {
-    const bookings = await Booking.find({ userId: req.user!._id, status: 'confirmed' })
+    const bookings = await Booking.find({ userId: req.user!._id, status: { $in: ['requested', 'confirmed', 'completed'] } })
       .populate('pgId', 'name city address pricePerMonth primaryImage')
       .sort({ createdAt: -1 });
     return res.json({ bookings });
@@ -345,10 +345,10 @@ router.post('/complaints', async (req: AuthRequest, res) => {
   try {
     const { pgId, type, description, priority, photoUrls } = req.body;
     
-    // Check for active booking
+    // Check for registered booking (requested, confirmed, or completed)
     const bookingFilter: any = { 
       userId: req.user!._id, 
-      status: 'confirmed' 
+      status: { $in: ['requested', 'confirmed', 'completed'] } 
     };
     if (pgId) {
       bookingFilter.pgId = pgId;
@@ -357,7 +357,7 @@ router.post('/complaints', async (req: AuthRequest, res) => {
     const booking = await Booking.findOne(bookingFilter);
     
     if (!booking) {
-      return res.status(403).json({ error: 'You can only file a complaint if you have an active PG booking.' });
+      return res.status(403).json({ error: 'You can only file a complaint for a PG where you have registered or stayed.' });
     }
 
     const complaint = await Complaint.create({

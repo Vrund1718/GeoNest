@@ -416,7 +416,11 @@ export const PGDetailsPage: React.FC = () => {
               <div>
                 <label className="label">Type</label>
                 <select className="input" value={complaint.type} onChange={(e) => setComplaint({ ...complaint, type: e.target.value })}>
-                  {['hygiene', 'noise', 'safety', 'staff', 'amenity', 'other'].map(t => <option key={t} value={t} className="capitalize">{t.replace('_', ' ')}</option>)}
+                  {[
+                    'hygiene', 'noise', 'safety', 'staff', 'amenity', 'electrician',
+                    'plumber', 'wifi', 'furniture', 'water', 'security', 'pest_control',
+                    'food', 'other'
+                  ].map(t => <option key={t} value={t} className="capitalize">{t.replace('_', ' ')}</option>)}
                 </select>
               </div>
               <div>
@@ -436,12 +440,12 @@ export const PGDetailsPage: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-ink-700/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setRestrictedComplaintModal(false)}>
           <div className="card w-full max-w-md p-6 text-center space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto text-3xl">🔒</div>
-            <h3 className="font-bold text-xl text-ink-800">Active Booking Required</h3>
+            <h3 className="font-bold text-xl text-ink-800">Registration or Booking Required</h3>
             <p className="text-sm text-ink/60">
-              You can only file a complaint if you have an active PG booking for <strong>"{pg.name}"</strong>.
+              You can only file a complaint if you have a registered booking or stay record for <strong>"{pg.name}"</strong>.
             </p>
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 text-left">
-              💡 <strong>Note:</strong> Once your booking request is confirmed by the PG owner, you will be able to submit complaint tickets directly from your dashboard.
+              💡 <strong>Note:</strong> Send a booking request for this PG to register and submit tickets.
             </div>
             <div className="flex gap-2">
               <button onClick={() => setRestrictedComplaintModal(false)} className="btn-secondary flex-1">Close</button>

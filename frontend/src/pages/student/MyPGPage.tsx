@@ -151,13 +151,25 @@ export const MyPGPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="text-2xl font-bold text-ink-700">{pg.name}</h2>
-                  <span className={`badge ${activeBooking?.status === 'confirmed' ? 'bg-sage/10 text-sage' : 'bg-sand-200 text-ink/50'}`}>
-                    {activeBooking?.status.toUpperCase()}
+                  <span className={`badge ${
+                    activeBooking?.status === 'confirmed'
+                      ? 'bg-sage/10 text-sage'
+                      : activeBooking?.status === 'requested'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-sand-200 text-ink/50'
+                  }`}>
+                    {activeBooking?.status === 'requested' ? 'REQUEST PENDING' : activeBooking?.status.toUpperCase()}
                   </span>
                 </div>
                 <p className="text-sm text-ink/55 flex items-center gap-1 mb-4">
                   <span>📍</span> {pg.address}, {pg.city}
                 </p>
+
+                {activeBooking?.status === 'requested' && (
+                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                    ⏳ <strong>Booking Request Pending:</strong> Awaiting confirmation from the PG owner. You can contact the owner or file a complaint below if needed.
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-sand-200">
                   <div>
@@ -180,9 +192,15 @@ export const MyPGPage: React.FC = () => {
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <button onClick={() => setShowPay(true)} className="btn-primary flex-1">Pay Rent / Dues</button>
-                <button onClick={() => setShowRenew(true)} className="btn-secondary flex-1">Renew / Extend Stay</button>
-                <button onClick={() => setShowComplaint(true)} className="btn-secondary flex-1">Raise Complaint</button>
+                {activeBooking?.status === 'confirmed' ? (
+                  <>
+                    <button onClick={() => setShowPay(true)} className="btn-primary flex-1">Pay Rent / Dues</button>
+                    <button onClick={() => setShowRenew(true)} className="btn-secondary flex-1">Renew / Extend Stay</button>
+                  </>
+                ) : (
+                  <button onClick={() => nav('/student/bookings')} className="btn-secondary flex-1">View Booking Details</button>
+                )}
+                <button onClick={() => setShowComplaint(true)} className="btn-primary flex-1">Raise Complaint</button>
               </div>
             </div>
           </div>

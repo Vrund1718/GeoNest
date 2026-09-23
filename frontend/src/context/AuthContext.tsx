@@ -7,7 +7,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   signup: (data: { name: string; email: string; phone: string; password: string; role: string; phoneVerificationToken: string }) => Promise<{ ok: boolean; error?: string; errors?: any[] }>;
-  sendOtp: (phone: string) => Promise<{ ok: boolean; error?: string }>;
+  sendOtp: (phone: string) => Promise<{ ok: boolean; error?: string; devOtp?: string; devMode?: boolean; message?: string }>;
   verifyOtp: (phone: string, code: string) => Promise<{ ok: boolean; verified: boolean; phoneVerificationToken?: string; error?: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -73,8 +73,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const sendOtp = useCallback(async (phone: string) => {
     try {
       console.log('[sendOtp] POST /auth/send-otp', { phone });
-      await api.post('/auth/send-otp', { phone });
-      return { ok: true };
+      const { data } = await api.post('/auth/send-otp', { phone });
+      return { ok: true, devOtp: data?.devOtp, devMode: data?.devMode, message: data?.message };
     } catch (err: any) {
       return { ok: false, error: extractApiError(err, 'Failed to send OTP') };
     }

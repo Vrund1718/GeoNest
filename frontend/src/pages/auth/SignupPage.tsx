@@ -21,6 +21,7 @@ export const SignupPage: React.FC = () => {
   const [resendTimer, setResendTimer] = useState(0);
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
 
   const setF = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => {
     if (k === 'phone') {
@@ -28,8 +29,18 @@ export const SignupPage: React.FC = () => {
       setOtpVerified(false);
       setPhoneVerificationToken('');
       setOtp('');
+      setDevOtpHint(null);
     }
     setForm({ ...form, [k]: v });
+  };
+
+  const handleChangePhone = () => {
+    setOtpSent(false);
+    setOtpVerified(false);
+    setPhoneVerificationToken('');
+    setOtp('');
+    setDevOtpHint(null);
+    setErr(null);
   };
 
   const handleSendOtp = async () => {
@@ -44,6 +55,9 @@ export const SignupPage: React.FC = () => {
     setSendingOtp(false);
     if (res.ok) {
       setOtpSent(true);
+      if (res.devOtp) {
+        setDevOtpHint(res.devOtp);
+      }
       setResendTimer(30);
       const timer = setInterval(() => {
         setResendTimer((prev) => {
@@ -269,14 +283,25 @@ export const SignupPage: React.FC = () => {
                   <span>
                     Phone {fe('phone') && <span className="text-coral font-normal ml-2 text-xs">{fe('phone')}</span>}
                   </span>
-                  {otpVerified && (
-                    <span className="flex items-center gap-1 text-[11px] font-semibold text-sage uppercase tracking-wider">
-                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      Verified
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {otpSent && !otpVerified && (
+                      <button
+                        type="button"
+                        onClick={handleChangePhone}
+                        className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold underline"
+                      >
+                        Change number
+                      </button>
+                    )}
+                    {otpVerified && (
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-sage uppercase tracking-wider">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Verified
+                      </span>
+                    )}
+                  </div>
                 </label>
                 <div className="flex gap-2">
                   <div className="relative flex-1 group">
@@ -298,20 +323,41 @@ export const SignupPage: React.FC = () => {
                       autoComplete="tel"
                     />
                   </div>
-                  {!otpVerified && (
+                  {!otpVerified && !otpSent && (
                     <button
                       type="button"
                       onClick={handleSendOtp}
-                      disabled={sendingOtp || form.phone.length !== 10 || otpSent}
+                      disabled={sendingOtp || form.phone.length !== 10}
                       className="btn-secondary px-4 h-11 text-xs whitespace-nowrap rounded-xl"
                     >
-                      {sendingOtp ? 'Sending…' : otpSent ? 'OTP Sent' : 'Verify'}
+                      {sendingOtp ? 'Sending…' : 'Verify'}
+                    </button>
+                  )}
+                  {!otpVerified && otpSent && (
+                    <button
+                      type="button"
+                      onClick={handleChangePhone}
+                      className="btn-secondary px-3.5 h-11 text-xs whitespace-nowrap rounded-xl hover:bg-sand-200"
+                    >
+                      Edit
                     </button>
                   )}
                 </div>
 
                 {otpSent && !otpVerified && (
                   <div className="mt-3 space-y-3 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 animate-in fade-in slide-in-from-top-2">
+                    {devOtpHint && (
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                        <span>💡 Trial/Dev OTP: <strong>{devOtpHint}</strong></span>
+                        <button
+                          type="button"
+                          onClick={() => setOtp(devOtpHint)}
+                          className="text-[11px] font-bold text-indigo-700 hover:underline uppercase tracking-wider"
+                        >
+                          Auto-fill
+                        </button>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <label htmlFor="otp-input" className="text-xs font-semibold text-indigo-900 uppercase tracking-wider">
                         Enter 6-digit OTP
