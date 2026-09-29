@@ -1,6 +1,7 @@
 import React from 'react';
 import { PGListing } from '../types';
 import { Link } from 'react-router-dom';
+import { Star, MapPin, Check, Plus } from 'lucide-react';
 
 const formatDistance = (m?: number) => {
   if (m == null) return '';
@@ -10,98 +11,209 @@ const formatDistance = (m?: number) => {
 
 export const RatingStars: React.FC<{ rating: number | null | undefined; size?: 'sm' | 'md' }> = ({ rating, size = 'sm' }) => {
   const r = rating || 0;
-  const cls = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+  const cls = size === 'sm' ? 'w-3.5 h-3.5 sm:w-4 sm:h-4' : 'w-4 h-4 sm:w-5 sm:h-5';
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((i) => (
-        <svg key={i} className={`${cls} ${r >= i ? 'text-marigold-500' : 'text-ink/15'}`} viewBox="0 0 20 20" fill="currentColor">
-          <path d="M9.05 2.93A1 1 0 0110 2.5a1 1 0 01.95.43l1.9 3.24 3.55.36a1 1 0 01.57 1.76l-2.77 2.37.91 3.45a1 1 0 01-1.5 1.09L10 13.51l-3.11 2.19a1 1 0 01-1.5-1.09l.91-3.45L1.03 8.3a1 1 0 01.57-1.76l3.55-.36L9.05 2.93z" />
-        </svg>
+        <Star
+          key={i}
+          className={`${cls} ${
+            r >= i
+              ? 'text-amber-400 fill-amber-400'
+              : 'text-slate-300 dark:text-slate-600'
+          }`}
+        />
       ))}
-      {rating != null && <span className={`text-${size === 'sm' ? 'xs' : 'sm'} text-ink/55 ml-1`}>{rating.toFixed(1)}</span>}
+      {rating != null && (
+        <span className={`text-${size === 'sm' ? 'xs' : 'sm'} text-ink/55 dark:text-slate-400 font-medium ml-1`}>
+          {rating.toFixed(1)}
+        </span>
+      )}
     </div>
   );
 };
 
-export const PGCard: React.FC<{ pg: PGListing; to?: string; onClick?: () => void }> = ({ pg, to = `/pg/${pg._id}`, onClick }) => {
+export const PGCard: React.FC<{
+  pg: PGListing;
+  to?: string;
+  onClick?: () => void;
+  isCompared?: boolean;
+  onCompareToggle?: (pg: PGListing) => void;
+}> = ({ pg, to = `/pg/${pg._id}`, onClick, isCompared = false, onCompareToggle }) => {
   const genderBadge =
-    pg.genderPreference === 'male' ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100' :
-    pg.genderPreference === 'female' ? 'bg-coral/10 text-coral ring-1 ring-coral/20' :
-    'bg-sand-100 text-ink-700 ring-1 ring-ink/10';
+    pg.genderPreference === 'male'
+      ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-100 dark:ring-indigo-800'
+      : pg.genderPreference === 'female'
+      ? 'bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 ring-1 ring-rose-100 dark:ring-rose-800'
+      : 'bg-sand-100 dark:bg-slate-700 text-ink-700 dark:text-slate-200 ring-1 ring-ink/10 dark:ring-slate-600';
   const genderLabel = pg.genderPreference === 'male' ? 'Boys' : pg.genderPreference === 'female' ? 'Girls' : 'Unisex';
 
-  const content = (
-    <div className="card overflow-hidden h-full flex flex-col hover:shadow-pop transition group">
-      <div className="relative aspect-[4/3] overflow-hidden bg-sand-100">
+  const handleCompareClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onCompareToggle) onCompareToggle(pg);
+  };
+
+  const cardInner = (
+    <div className="card overflow-hidden h-full flex flex-col hover:shadow-pop dark:hover:shadow-slate-700/30 transition-all duration-200 group border dark:border-slate-700">
+      <div className="relative aspect-[4/3] overflow-hidden bg-sand-100 dark:bg-slate-700">
         {pg.primaryImage ? (
-          <img src={pg.primaryImage} alt={pg.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+          <img
+            src={pg.primaryImage}
+            alt={pg.name}
+            loading="lazy"
+            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-ink/20 text-5xl">🏠</div>
+          <div className="w-full h-full flex items-center justify-center text-ink/20 dark:text-slate-500 text-4xl sm:text-5xl">🏠</div>
         )}
-        <div className="absolute top-3 left-3 flex gap-2">
+        <div className="absolute top-2.5 left-2.5 flex gap-1.5 flex-wrap z-10">
           <span className={`badge ${genderBadge}`}>{genderLabel}</span>
-          {pg.isVerified && <span className="badge bg-sage/10 text-sage ring-1 ring-sage/20">✓ Verified</span>}
+          {pg.isVerified && (
+            <span className="badge bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-800">
+              ✓ Verified
+            </span>
+          )}
         </div>
         {pg.distanceMeters != null && (
-          <div className="absolute top-3 right-3 badge bg-white/95 text-ink-700 ring-1 ring-ink/10 shadow-sm">
-            📍 {formatDistance(pg.distanceMeters)}
+          <div className="absolute top-2.5 right-2.5 badge bg-white/95 dark:bg-slate-800/95 text-ink-700 dark:text-slate-200 ring-1 ring-ink/10 dark:ring-slate-700 shadow-sm backdrop-blur-xs flex items-center gap-1 z-10">
+            <MapPin className="w-3 h-3 text-indigo-500" />
+            <span>{formatDistance(pg.distanceMeters)}</span>
           </div>
         )}
+
+        {/* Compare Checkbox Button */}
+        {onCompareToggle && (
+          <button
+            type="button"
+            onClick={handleCompareClick}
+            className={`absolute bottom-2.5 right-2.5 badge z-10 transition-all shadow-md flex items-center gap-1 ${
+              isCompared
+                ? 'bg-indigo-600 text-white ring-2 ring-indigo-400'
+                : 'bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700'
+            }`}
+          >
+            {isCompared ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+            <span className="text-[11px] font-semibold">{isCompared ? 'Compared' : 'Compare'}</span>
+          </button>
+        )}
       </div>
-      <div className="p-4 flex-1 flex flex-col">
+
+      <div className="p-3.5 sm:p-4 flex-1 flex flex-col">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-ink-700 line-clamp-1">{pg.name}</h3>
+          <h3 className="font-semibold text-ink-700 dark:text-slate-100 line-clamp-1 text-sm sm:text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+            {pg.name}
+          </h3>
         </div>
-        <p className="text-xs text-ink/55 mt-0.5 line-clamp-2">{pg.address}, {pg.city}</p>
+        <p className="text-xs text-ink/55 dark:text-slate-400 mt-0.5 line-clamp-2">{pg.address}, {pg.city}</p>
+        
         <div className="mt-2 flex items-center gap-2">
           <RatingStars rating={pg.averageRating} />
           {pg.reviewCount != null && pg.reviewCount > 0 && (
-            <span className="text-xs text-ink/55">({pg.reviewCount})</span>
+            <span className="text-xs text-ink/55 dark:text-slate-400">({pg.reviewCount})</span>
           )}
         </div>
+
         {Array.isArray(pg.amenities) && pg.amenities.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1">
+          <div className="mt-2.5 flex flex-wrap gap-1">
             {pg.amenities.slice(0, 4).map((a) => (
-              <span key={typeof a === 'string' ? a : a._id} className="badge bg-sand-50 text-ink-600 ring-1 ring-ink/10">
+              <span
+                key={typeof a === 'string' ? a : a._id}
+                className="badge bg-sand-50 dark:bg-slate-700/80 text-ink-600 dark:text-slate-300 ring-1 ring-ink/10 dark:ring-slate-600 text-[11px]"
+              >
                 {typeof a === 'string' ? a : a.name}
               </span>
             ))}
-            {pg.amenities.length > 4 && <span className="badge text-ink/40">+{pg.amenities.length - 4}</span>}
+            {pg.amenities.length > 4 && (
+              <span className="badge text-ink/40 dark:text-slate-500 text-[11px]">+{pg.amenities.length - 4}</span>
+            )}
           </div>
         )}
-        <div className="mt-auto pt-3 flex items-end justify-between">
+
+        <div className="mt-auto pt-3 border-t border-ink/10 dark:border-slate-700/60 flex items-end justify-between">
           <div>
-            <div className="text-xl font-bold text-indigo-700">₹{pg.pricePerMonth.toLocaleString()}</div>
-            <div className="text-xs text-ink/55">per month</div>
+            <div className="text-lg sm:text-xl font-bold text-indigo-700 dark:text-indigo-400">
+              ₹{pg.pricePerMonth.toLocaleString()}
+            </div>
+            <div className="text-[11px] text-ink/55 dark:text-slate-400">per month</div>
           </div>
-          <div className="text-xs text-ink/55 text-right">
-            {pg.availableRooms}/{pg.totalRooms} rooms
+          <div className="text-xs text-ink/55 dark:text-slate-400 text-right">
+            <span className="font-semibold text-slate-700 dark:text-slate-200">{pg.availableRooms}</span>/{pg.totalRooms} rooms
           </div>
         </div>
       </div>
     </div>
   );
-  if (onClick) return <div onClick={onClick} className="cursor-pointer">{content}</div>;
-  return <Link to={to} className="block">{content}</Link>;
+
+  if (onClick) return <div onClick={onClick} className="cursor-pointer h-full">{cardInner}</div>;
+  return <Link to={to} className="block h-full">{cardInner}</Link>;
 };
 
-export const EmptyState: React.FC<{ title: string; description?: string; action?: React.ReactNode; icon?: string }> = ({
-  title, description, action, icon = '📭',
-}) => (
-  <div className="card p-10 flex flex-col items-center text-center">
-    <div className="text-5xl mb-4">{icon}</div>
-    <h3 className="font-semibold text-lg text-ink-700">{title}</h3>
-    {description && <p className="text-sm text-ink/55 mt-2 max-w-md">{description}</p>}
-    {action && <div className="mt-5">{action}</div>}
+export const SkeletonCard: React.FC = () => (
+  <div className="card overflow-hidden h-full flex flex-col animate-pulse border dark:border-slate-700">
+    <div className="aspect-[4/3] bg-sand-200 dark:bg-slate-700 w-full" />
+    <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+      <div className="space-y-2">
+        <div className="h-5 bg-sand-200 dark:bg-slate-700 rounded-md w-3/4" />
+        <div className="h-3 bg-sand-200 dark:bg-slate-700 rounded-md w-1/2" />
+        <div className="h-4 bg-sand-200 dark:bg-slate-700 rounded-md w-1/3" />
+      </div>
+      <div className="pt-3 border-t border-ink/10 dark:border-slate-700 flex justify-between items-center">
+        <div className="h-6 bg-sand-200 dark:bg-slate-700 rounded-md w-24" />
+        <div className="h-4 bg-sand-200 dark:bg-slate-700 rounded-md w-16" />
+      </div>
+    </div>
   </div>
 );
 
-export const PageHeader: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode }> = ({ title, subtitle, actions }) => (
-  <div className="flex items-start justify-between gap-4 mb-6">
+export const SkeletonDetail: React.FC = () => (
+  <div className="max-w-6xl mx-auto space-y-6 animate-pulse">
+    <div className="h-8 bg-sand-200 dark:bg-slate-700 rounded-lg w-2/3" />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-72 sm:h-96">
+      <div className="md:col-span-2 bg-sand-200 dark:bg-slate-700 rounded-2xl h-full" />
+      <div className="grid grid-rows-2 gap-4 h-full">
+        <div className="bg-sand-200 dark:bg-slate-700 rounded-2xl" />
+        <div className="bg-sand-200 dark:bg-slate-700 rounded-2xl" />
+      </div>
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-4">
+        <div className="h-40 bg-sand-200 dark:bg-slate-700 rounded-2xl" />
+        <div className="h-32 bg-sand-200 dark:bg-slate-700 rounded-2xl" />
+      </div>
+      <div className="h-64 bg-sand-200 dark:bg-slate-700 rounded-2xl" />
+    </div>
+  </div>
+);
+
+export const EmptyState: React.FC<{
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+  icon?: string;
+}> = ({ title, description, action, icon = '📭' }) => (
+  <div className="card p-8 sm:p-12 flex flex-col items-center text-center border dark:border-slate-700">
+    <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">{icon}</div>
+    <h3 className="font-semibold text-base sm:text-lg text-ink-700 dark:text-slate-100">{title}</h3>
+    {description && (
+      <p className="text-xs sm:text-sm text-ink/55 dark:text-slate-400 mt-2 max-w-md leading-relaxed">
+        {description}
+      </p>
+    )}
+    {action && <div className="mt-5 sm:mt-6">{action}</div>}
+  </div>
+);
+
+export const PageHeader: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode }> = ({
+  title,
+  subtitle,
+  actions,
+}) => (
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
     <div>
       <h1 className="h1">{title}</h1>
-      {subtitle && <p className="text-sm text-ink/55 mt-1">{subtitle}</p>}
+      {subtitle && <p className="text-xs sm:text-sm text-ink/55 dark:text-slate-400 mt-0.5 sm:mt-1">{subtitle}</p>}
     </div>
-    {actions && <div className="flex-shrink-0">{actions}</div>}
+    {actions && <div className="shrink-0">{actions}</div>}
   </div>
 );

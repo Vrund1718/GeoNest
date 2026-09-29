@@ -21,6 +21,9 @@ export const config = {
     verifyServiceSid: process.env.TWILIO_VERIFY_SERVICE_SID || '',
   },
   otpTokenSecret: process.env.OTP_TOKEN_SECRET || 'dev-otp-secret',
+  aiProvider: process.env.AI_PROVIDER || 'gemini',
+  aiApiKey: process.env.AI_API_KEY || process.env.GEMINI_API_KEY || '',
+  orsApiKey: process.env.ORS_API_KEY || '',
 };
 
 export const isCloudinaryEnabled = Boolean(

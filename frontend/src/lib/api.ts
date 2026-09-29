@@ -8,7 +8,10 @@ const PUBLIC_AUTH_URLS = new Set([
   '/auth/verify-otp',
 ]);
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+const baseURL = rawApiUrl
+  ? (rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`)
+  : '/api';
 
 const urlMatches = (cfg: AxiosRequestConfig | undefined, suffixes: Set<string>) => {
   let u = cfg?.url ?? '';
@@ -28,7 +31,7 @@ const urlMatches = (cfg: AxiosRequestConfig | undefined, suffixes: Set<string>) 
 };
 
 const api = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

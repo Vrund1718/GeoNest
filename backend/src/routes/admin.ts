@@ -4,6 +4,7 @@ import Complaint from '../models/Complaint';
 import User from '../models/User';
 import Booking from '../models/Booking';
 import Owner from '../models/Owner';
+import Report from '../models/Report';
 import NearbyPlace from '../models/NearbyPlace';
 import { AuthRequest, requireAuth, requireRole } from '../middleware/auth';
 import { fetchAndStoreNearbyPlaces } from '../services/nearbyPlaces';
@@ -137,12 +138,47 @@ router.get('/users', async (req, res) => {
   }
 });
 
+router.get('/reports', async (req, res) => {
+  try {
+    const reports = await Report.find()
+      .populate('userId', 'name email')
+      .populate('pgId', 'name city address')
+      .sort({ createdAt: -1 });
+    return res.json({ reports });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to fetch reports' });
+  }
+});
+
+router.put('/reports/:id', async (req: AuthRequest, res) => {
+  try {
+    const { status, adminNotes, hideListing } = req.body;
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+
+    if (status) report.status = status;
+    if (adminNotes !== undefined) report.adminNotes = adminNotes;
+    await report.save();
+
+    if (hideListing && report.pgId) {
+      await PGListing.findByIdAndUpdate(report.pgId, { status: 'inactive' });
+    }
+
+    return res.json({ report, message: 'Report status updated' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to update report' });
+  }
+});
+
 router.get('/overview', async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
     const totalPGs = await PGListing.countDocuments({ status: { $ne: 'deleted' } });
     const pendingVerifications = await PGListing.countDocuments({ isVerified: false, status: 'active' });
     const openComplaints = await Complaint.countDocuments({ status: { $in: ['open', 'in_progress'] } });
+    const pendingReports = await Report.countDocuments({ status: 'pending' });
     const owners = await Owner.countDocuments();
     const students = await User.countDocuments({ role: 'student' });
     const verifiedPGs = await PGListing.countDocuments({ isVerified: true, status: 'active' });
@@ -153,6 +189,7 @@ router.get('/overview', async (req, res) => {
         totalPGs,
         pendingVerifications,
         openComplaints,
+        pendingReports,
         owners,
         students,
         verifiedPGs,
