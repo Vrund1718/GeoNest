@@ -5,6 +5,7 @@ import api from '../../lib/api';
 import { PGListing } from '../../types';
 import { RatingStars, PGCard, EmptyState } from '../../components/shared';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../../context/ThemeContext';
 import { MapPin, Search, List, Map as MapIcon, X, ExternalLink } from 'lucide-react';
 
 const MapRecenter: React.FC<{ center: [number, number] }> = ({ center }) => {
@@ -41,6 +42,7 @@ const customIcon = (color: string) => L.divIcon({
 
 export const MapPage: React.FC = () => {
   const nav = useNavigate();
+  const { theme } = useTheme();
   const [query, setQuery] = useState('Nirma University');
   const [radiusKm, setRadiusKm] = useState(5);
   const [center, setCenter] = useState<[number, number]>([23.103, 72.5957]);
@@ -177,8 +179,17 @@ export const MapPage: React.FC = () => {
             <MapRecenter center={center} />
             <MapInvalidator />
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              key={theme}
+              attribution={
+                theme === 'dark'
+                  ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                  : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              }
+              url={
+                theme === 'dark'
+                  ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                  : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+              }
             />
             {indiaGeoJson && (
               <GeoJSON 

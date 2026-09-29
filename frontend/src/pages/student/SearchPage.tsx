@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import api from '../../lib/api';
-import { PGCard, EmptyState } from '../../components/shared';
+import toast from 'react-hot-toast';
+import { PGCard, EmptyState, SkeletonCard } from '../../components/shared';
+import { CompareDrawer } from '../../components/CompareDrawer';
 import { PGListing, SearchFilters } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Filter, X, Search, Map, RotateCcw, SlidersHorizontal, Check } from 'lucide-react';
@@ -22,6 +24,23 @@ export const SearchPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState('Nirma University');
   const [err, setErr] = useState<string | null>(null);
+
+  // PG Comparison state
+  const [comparedPGs, setComparedPGs] = useState<PGListing[]>([]);
+
+  const handleCompareToggle = (pg: PGListing) => {
+    setComparedPGs((prev) => {
+      const exists = prev.some((item) => item._id === pg._id);
+      if (exists) {
+        return prev.filter((item) => item._id !== pg._id);
+      }
+      if (prev.length >= 3) {
+        toast.error('You can compare up to 3 PGs at a time.');
+        return prev;
+      }
+      return [...prev, pg];
+    });
+  };
 
   // Mobile filter drawer state
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -416,18 +435,40 @@ export const SearchPage: React.FC = () => {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="card aspect-[4/5] animate-pulse bg-sand-100 dark:bg-slate-700/50 rounded-2xl" />
+                <SkeletonCard key={i} />
               ))}
             </div>
           ) : results.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-              {results.map((pg) => <PGCard key={pg._id} pg={pg} />)}
+              {results.map((pg) => (
+                <PGCard
+                  key={pg._id}
+                  pg={pg}
+                  isCompared={comparedPGs.some((item) => item._id === pg._id)}
+                  onCompareToggle={handleCompareToggle}
+                />
+              ))}
             </div>
           ) : (
-            <EmptyState title="No PGs match your filters" description="Try broadening the search radius, clearing filters, or searching another location." icon="🏚️" />
+            <EmptyState
+              title="No PGs match your filters"
+              description="Try broadening the search radius, clearing filters, or searching another location."
+              icon="🏚️"
+              action={
+                <button type="button" onClick={clearFilters} className="btn-primary text-xs py-2 px-4">
+                  Clear Filters
+                </button>
+              }
+            />
           )}
         </section>
       </div>
+
+      <CompareDrawer
+        comparedPGs={comparedPGs}
+        onRemove={(id) => setComparedPGs((prev) => prev.filter((item) => item._id !== id))}
+        onClear={() => setComparedPGs([])}
+      />
     </div>
   );
 };
