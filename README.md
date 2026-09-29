@@ -82,15 +82,59 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
+## Key Features & Upgrades
+
+### 📱 1. Mobile-First Responsive & Adaptive Layouts
+- Fully responsive across mobile (360px+), tablet, and desktop viewports.
+- Touch-friendly slide-in navigation drawer with backdrop overlay, keyboard `Escape` handling, and route auto-close.
+- Mobile filter drawer / bottom sheet for seamless accommodation filtering.
+- Dual **List View | Map View** toggle on mobile with auto `map.invalidateSize()` refresh.
+- Touch-optimized Multi-Step Wizard for PG Listing creation with `text-base` input sizing to prevent iOS auto-zoom.
+
+### 🌗 2. Dark Mode & Modern UI/UX
+- Smooth Dark Mode theme switching powered by Tailwind CSS `darkMode: 'class'` and `ThemeContext`.
+- Prevents FOUC (Flash of Unstyled Content) with inline head script.
+- Switches Leaflet map tiles dynamically to CartoDB Dark Matter in dark mode.
+- Interactive side-by-side PG Comparison drawer (up to 3 PGs).
+- Native share capabilities: One-click "Copy Link" and "WhatsApp Share".
+- Rich loading skeletons and empty states powered by `react-hot-toast` and `react-helmet-async` SEO meta tags.
+
+### 🤖 3. AI Voice Search & AI Assistant
+- **Voice Search**: Speech-to-text input via Web Speech API with pulsing mic indicator, live speech transcript, and fallback regex parsing when API keys are unconfigured.
+- **AI Chat Assistant**: Floating interactive assistant powered by `@google/genai` (Gemini API) providing real-time accommodation advice, rent estimation, and local area guidance with text-to-speech voice readout.
+
+### 🧠 4. Smart Recommendation & Neighbourhood Livability
+- **Neighbourhood Score**: 0-10 livability score generated from nearby healthcare, transit, food, banks, and fitness amenities.
+- **Student Review Sentiment**: Automated sentiment extraction categorizing student feedback into positive likes (Wi-Fi, cleanliness) and dislikes (street noise, curfew).
+- **Commute Estimation**: OpenRouteService walking and driving time calculation with Haversine formula fallback.
+
+### 📊 5. Owner Analytics, Visit Scheduling & Moderation
+- **Owner Analytics**: Recharts interactive performance trends tracking total views, wishlists, booking requests, and room occupancy rates.
+- **Schedule a Visit**: Interactive visit scheduling modal enabling students to request date and time slots with direct owner notifications.
+- **Report Listing & Moderation Queue**: Flag suspicious listings (fake info, wrong pricing, safety) with admin moderation queue to hide listings and audit reports.
+- **Multilingual Support**: Internationalization (EN, HI, GU) via `i18next` and `react-i18next`.
+
+---
+
+## Production Security & CI/CD Pipeline
+
+- Strictly checks production JWT secrets before server boot (`NODE_ENV=production`).
+- Cross-origin HTTP-only cookie support with `sameSite: 'none'` and `secure: true`.
+- GitHub Actions CI Pipeline (`.github/workflows/ci.yml`) automatically builds, lints, and runs test suites on every push.
+
+---
+
 ## Verification & Scripts
 
 ### Backend Commands
 - `npm run dev`: Run server with hot reload
 - `npm run seed`: Populate database with sample PGs and accounts
 - `npm run build`: Compile TypeScript into `dist/`
+- `npm test`: Run Jest unit test suite
 - `npm run lint`: Perform type checking (`tsc --noEmit`)
 
 ### Frontend Commands
 - `npm run dev`: Launch Vite dev server
 - `npm run build`: Compile TypeScript and build production bundle
+- `npm test`: Run Vitest unit test suite
 - `npm run lint`: Perform type checking (`tsc --noEmit`)
