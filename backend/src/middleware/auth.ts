@@ -21,10 +21,12 @@ export const setAuthCookies = (res: Response, user: IUser) => {
   const accessToken = signAccessToken(user);
   const refreshToken = signRefreshToken(user);
 
+  const isProd = config.nodeEnv === 'production';
+  const sameSiteVal: 'none' | 'lax' = isProd ? 'none' : 'lax';
   const baseOpts = {
     httpOnly: true,
-    sameSite: 'lax' as const,
-    secure: config.nodeEnv === 'production',
+    sameSite: sameSiteVal,
+    secure: isProd,
     path: '/',
   };
 
@@ -39,7 +41,14 @@ export const setAuthCookies = (res: Response, user: IUser) => {
 };
 
 export const clearAuthCookies = (res: Response) => {
-  const clearOpts = { httpOnly: true, sameSite: 'lax' as const, secure: config.nodeEnv === 'production', path: '/' };
+  const isProd = config.nodeEnv === 'production';
+  const sameSiteVal: 'none' | 'lax' = isProd ? 'none' : 'lax';
+  const clearOpts = {
+    httpOnly: true,
+    sameSite: sameSiteVal,
+    secure: isProd,
+    path: '/',
+  };
   res.clearCookie('access_token', clearOpts);
   res.clearCookie('refresh_token', clearOpts);
 };

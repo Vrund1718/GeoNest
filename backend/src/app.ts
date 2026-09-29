@@ -30,9 +30,19 @@ app.use(
   })
 );
 
+const allowedOrigins = config.frontendOrigin
+  ? config.frontendOrigin.split(',').map((o) => o.trim()).filter(Boolean)
+  : ['http://localhost:5173'];
+
 app.use(
   cors({
-    origin: [config.frontendOrigin].filter(Boolean),
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || config.nodeEnv !== 'production') {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS not allowed for origin: ' + origin));
+      }
+    },
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
