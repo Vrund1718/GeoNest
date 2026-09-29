@@ -35,9 +35,10 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-sand-50">
+    <div className="min-h-screen flex bg-sand-50 dark:bg-slate-900 transition-colors duration-200">
+      {/* Left decoration panel - hidden on small screens */}
       <div className="hidden md:flex md:w-1/2 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-700 via-indigo-600 to-indigo-800" />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-700 via-indigo-600 to-indigo-800 dark:from-indigo-950 dark:via-indigo-900 dark:to-slate-900" />
         <div
           className="absolute inset-0 opacity-[0.07]"
           style={{
@@ -54,15 +55,6 @@ export const LoginPage: React.FC = () => {
             </radialGradient>
           </defs>
           <circle cx="100" cy="100" r="100" fill="url(#glowA)" />
-        </svg>
-        <svg className="absolute -right-32 bottom-[-140px] w-[460px] h-[460px] opacity-40 animate-float-slow motion-reduce:animate-none" viewBox="0 0 200 200" aria-hidden="true" style={{ animationDelay: '-4s' }}>
-          <defs>
-            <radialGradient id="glowB" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#E8A33D" />
-              <stop offset="100%" stopColor="#E8A33D" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <circle cx="100" cy="100" r="100" fill="url(#glowB)" />
         </svg>
 
         <div className="relative z-10 p-10 md:p-14 flex flex-col justify-between h-full text-white">
@@ -110,21 +102,22 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="w-full md:w-1/2 flex items-center justify-center p-6 sm:p-10">
+      {/* Login form container */}
+      <div className="w-full md:w-1/2 flex items-center justify-center p-4 sm:p-10">
         <div className="w-full max-w-md">
-          <div className="md:hidden flex items-center gap-3 mb-8">
+          <div className="md:hidden flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white grid place-items-center shadow-pop">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M3 10.5 12 3l9 7.5" />
                 <path d="M5 9.5V21h14V9.5" />
               </svg>
             </div>
-            <p className="font-display text-ink-700 text-lg tracking-tight">GeoNest</p>
+            <p className="font-display text-ink-700 dark:text-slate-100 text-xl font-bold tracking-tight">GeoNest</p>
           </div>
 
-          <div className="rounded-3xl bg-white shadow-paper ring-1 ring-ink/5 p-7 sm:p-9">
-            <h2 className="font-display text-2xl tracking-tight text-ink-700">Welcome back</h2>
-            <p className="text-sm text-ink/60 mt-1.5">Sign in to continue to your dashboard.</p>
+          <div className="rounded-3xl bg-white dark:bg-slate-800 border border-ink/10 dark:border-slate-700 shadow-paper p-6 sm:p-9">
+            <h2 className="font-display text-2xl tracking-tight text-ink-700 dark:text-slate-100">Welcome back</h2>
+            <p className="text-sm text-ink/60 dark:text-slate-400 mt-1.5">Sign in to continue to your dashboard.</p>
 
             {err && (
               <div role="alert" className="mt-6 flex items-start gap-3 rounded-2xl border border-coral/25 bg-coral/[0.07] text-coral px-4 py-3 text-sm leading-relaxed">
@@ -159,11 +152,6 @@ export const LoginPage: React.FC = () => {
                 placeholder="••••••••"
                 required
                 autoComplete="current-password"
-                hint={
-                  <span>
-                    Tip: passwords use <code className="px-1 rounded bg-sand-100 font-mono text-[10px]">bcrypt</code> — at least 8 chars.
-                  </span>
-                }
               />
 
               <button type="submit" disabled={loading} className="btn-primary w-full py-2.5 h-11 rounded-xl shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marigold-500/60 focus-visible:ring-offset-2">
@@ -179,9 +167,9 @@ export const LoginPage: React.FC = () => {
             </form>
 
             {import.meta.env.DEV && (
-              <div className="mt-7 pt-5 border-t border-ink/10">
-                <p className="text-[11px] uppercase tracking-wider text-ink/45 font-semibold">Try a demo account (Dev only)</p>
-                <p className="text-xs text-ink/55 mt-1">pw: <code className="font-mono bg-sand-100 px-1 rounded">StrongPass1</code></p>
+              <div className="mt-7 pt-5 border-t border-ink/10 dark:border-slate-700">
+                <p className="text-[11px] uppercase tracking-wider text-ink/45 dark:text-slate-400 font-semibold">Try a demo account (Local Dev Only)</p>
+                <p className="text-xs text-ink/55 dark:text-slate-400 mt-1">pw: <code className="font-mono bg-sand-100 dark:bg-slate-700 px-1 rounded">StrongPass1</code></p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button type="button" onClick={() => fillDemo('student')} className="btn-secondary text-xs py-1.5 px-3 rounded-lg">Student</button>
                   <button type="button" onClick={() => fillDemo('owner')} className="btn-secondary text-xs py-1.5 px-3 rounded-lg">Owner</button>
@@ -190,12 +178,12 @@ export const LoginPage: React.FC = () => {
               </div>
             )}
 
-            <p className="text-sm text-ink/70 mt-8 text-center">
+            <p className="text-sm text-ink/70 dark:text-slate-300 mt-8 text-center">
               New here? <Link to="/signup" className="link font-semibold">Create an account</Link>
             </p>
           </div>
 
-          <p className="text-center text-[11px] text-ink/40 mt-6">
+          <p className="text-center text-[11px] text-ink/40 dark:text-slate-500 mt-6">
             Protected by rate-limiting · cookies are httpOnly & never exposed to JS.
           </p>
         </div>

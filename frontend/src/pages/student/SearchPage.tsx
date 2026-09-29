@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import api from '../../lib/api';
-import { PGCard, EmptyState, RatingStars } from '../../components/shared';
+import { PGCard, EmptyState } from '../../components/shared';
 import { PGListing, SearchFilters } from '../../types';
 import { useNavigate } from 'react-router-dom';
+import { Filter, X, Search, Map, RotateCcw, SlidersHorizontal, Check } from 'lucide-react';
 
 const ALL_AMENITIES = ['Wi-Fi', 'Mess', 'Laundry', '24/7 Water', 'AC', 'Parking', 'Gym', 'CCTV', 'Security', 'Lift', 'Study Room'];
 
@@ -21,6 +22,9 @@ export const SearchPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState('Nirma University');
   const [err, setErr] = useState<string | null>(null);
+
+  // Mobile filter drawer state
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   // Suggestion states
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -136,7 +140,7 @@ export const SearchPage: React.FC = () => {
       <span>
         {parts.map((part, i) => 
           part.toLowerCase() === query.toLowerCase() 
-            ? <strong key={i} className="text-indigo-600">{part}</strong> 
+            ? <strong key={i} className="text-indigo-600 dark:text-indigo-400">{part}</strong> 
             : part
         )}
       </span>
@@ -145,17 +149,93 @@ export const SearchPage: React.FC = () => {
 
   const toggleAmenity = (a: string) => setFilters((f) => ({ ...f, amenities: f.amenities.includes(a) ? f.amenities.filter(x => x !== a) : [...f.amenities, a] }));
 
+  const clearFilters = () => {
+    setFilters({ query: filters.query, radiusKm: 5, amenities: [], sortBy: 'recommended' } as any);
+  };
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.radiusKm !== 5) count++;
+    if (filters.minPrice != null || filters.maxPrice != null) count++;
+    if (filters.genderPreference) count++;
+    if (filters.amenities.length > 0) count += filters.amenities.length;
+    return count;
+  }, [filters]);
+
   const priceRange = useMemo(() => {
     const prices = results.map((r) => r.pricePerMonth).filter(Boolean);
     return prices.length ? { min: Math.min(...prices), max: Math.max(...prices) } : { min: 5000, max: 20000 };
   }, [results]);
 
+  const filterContent = (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between pb-2 border-b border-ink/10 dark:border-slate-700">
+        <h3 className="font-semibold text-ink-700 dark:text-slate-100 flex items-center gap-2 text-base">
+          <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+          <span>Filters</span>
+          {activeFilterCount > 0 && (
+            <span className="badge bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+              {activeFilterCount}
+            </span>
+          )}
+        </h3>
+        <button
+          type="button"
+          onClick={clearFilters}
+          className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center gap-1 min-h-[36px] px-2 rounded-lg"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          Clear all
+        </button>
+      </div>
+
+      <div>
+        <label className="label">Search radius: <span className="font-normal text-ink/55 dark:text-slate-400">{filters.radiusKm} km</span></label>
+        <input type="range" min={1} max={20} step={1} value={filters.radiusKm} className="range-slider" onChange={(e) => setFilters({ ...filters, radiusKm: parseInt(e.target.value) })} />
+      </div>
+
+      <div>
+        <label className="label">Price (₹/month)</label>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <input type="number" placeholder="Min" className="input" value={filters.minPrice ?? ''} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value ? parseInt(e.target.value) : undefined })} />
+          <input type="number" placeholder="Max" className="input" value={filters.maxPrice ?? ''} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value ? parseInt(e.target.value) : undefined })} />
+        </div>
+        <input type="range" min={priceRange.min} max={priceRange.max} step={500} value={filters.maxPrice ?? priceRange.max} className="range-slider" onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) })} />
+      </div>
+
+      <div>
+        <label className="label">Gender preference</label>
+        <div className="space-y-2">
+          {[['', 'Any'], ['male', 'Boys'], ['female', 'Girls'], ['unisex', 'Unisex']].map(([v, l]) => (
+            <label key={v || 'any'} className="flex items-center gap-2.5 text-sm text-ink-700 dark:text-slate-200 cursor-pointer min-h-[36px]">
+              <input type="radio" name="gender" className="accent-indigo-600 w-4 h-4" checked={filters.genderPreference === v} onChange={() => setFilters({ ...filters, genderPreference: v ? (v as any) : undefined })} />
+              {l}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="label">Amenities</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
+          {ALL_AMENITIES.map((a) => (
+            <label key={a} className="flex items-center gap-2.5 text-sm text-ink-700 dark:text-slate-200 cursor-pointer min-h-[36px]">
+              <input type="checkbox" className="accent-indigo-600 rounded w-4 h-4" checked={filters.amenities.includes(a)} onChange={() => toggleAmenity(a)} />
+              {a}
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div>
-      <div className="card p-4 mb-6">
-        <form onSubmit={onSubmit} className="flex flex-col md:flex-row gap-3">
+    <div className="max-w-7xl mx-auto">
+      {/* Search Header Bar */}
+      <div className="card p-3 sm:p-4 mb-4 sm:mb-6">
+        <form onSubmit={onSubmit} className="flex flex-col sm:flex-row gap-2.5">
           <div className="flex-1 relative" ref={searchRef}>
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" aria-hidden="true">🔍</span>
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink/40 dark:text-slate-500 pointer-events-none" />
             <input
               type="text"
               className="input pl-10"
@@ -167,9 +247,9 @@ export const SearchPage: React.FC = () => {
             />
             
             {showSuggestions && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
                 {loadingSuggestions ? (
-                  <div className="p-4 text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                  <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
                     <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                     Finding suggestions...
                   </div>
@@ -181,9 +261,9 @@ export const SearchPage: React.FC = () => {
                         type="button"
                         onClick={() => onSuggestionClick(s)}
                         onMouseEnter={() => setActiveIndex(i)}
-                        className={`w-full text-left p-3 flex items-center gap-3 transition-colors ${i === activeIndex ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}
+                        className={`w-full text-left p-3 flex items-center gap-3 transition-colors ${i === activeIndex ? 'bg-indigo-50 dark:bg-slate-700' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                       >
-                        <div className="w-10 h-10 rounded-lg bg-slate-100 shrink-0 overflow-hidden">
+                        <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 shrink-0 overflow-hidden">
                           {s.primaryImage ? (
                             <img src={s.primaryImage} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -191,10 +271,10 @@ export const SearchPage: React.FC = () => {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="font-medium text-slate-900 truncate">
+                          <div className="font-medium text-slate-900 dark:text-slate-100 truncate text-sm">
                             {highlightMatch(s.name, searchInput)}
                           </div>
-                          <div className="text-xs text-slate-500 flex items-center gap-1 truncate">
+                          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
                             <span>📍</span>
                             {highlightMatch(s.city || s.address || '', searchInput)}
                             {s.collegeName && (
@@ -206,110 +286,141 @@ export const SearchPage: React.FC = () => {
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className="text-sm font-semibold text-indigo-600">₹{s.pricePerMonth}</div>
-                          {s.averageRating && (
-                            <div className="text-[10px] text-amber-500 flex items-center justify-end gap-0.5">
-                              <span>⭐</span>
-                              {s.averageRating.toFixed(1)}
-                            </div>
-                          )}
+                          <div className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">₹{s.pricePerMonth}</div>
                         </div>
                       </button>
                     ))}
-                    <button
-                      type="submit"
-                      className="w-full p-2 text-center text-xs font-semibold text-slate-500 bg-slate-50 hover:bg-slate-100 transition-colors border-t border-slate-100"
-                    >
-                      See all results for "{searchInput}"
-                    </button>
                   </div>
                 ) : (
-                  <div className="p-4 text-center text-sm text-slate-500">
+                  <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
                     No PGs found for "{searchInput}"
                   </div>
                 )}
               </div>
             )}
           </div>
-          <div className="w-full md:w-40">
-            <select className="input" value={filters.sortBy} onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}>
-              <option value="recommended">Recommended</option>
-              <option value="distance">Distance</option>
-              <option value="price">Price</option>
-              <option value="rating">Rating</option>
-              <option value="popularity">Popularity</option>
-            </select>
+
+          <div className="flex items-center gap-2">
+            <div className="flex-1 sm:w-44">
+              <select className="input" value={filters.sortBy} onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}>
+                <option value="recommended">Recommended</option>
+                <option value="distance">Distance</option>
+                <option value="price">Price (Low-High)</option>
+                <option value="rating">Rating</option>
+                <option value="popularity">Popularity</option>
+              </select>
+            </div>
+            <button type="submit" className="btn-primary min-h-[44px]">
+              <Search className="w-4 h-4 sm:hidden" />
+              <span className="hidden sm:inline">Search</span>
+            </button>
           </div>
-          <button type="submit" className="btn-primary px-6">Search</button>
-          <button type="button" className="btn-secondary" onClick={() => nav('/student/map')}>🗺️ Map View</button>
         </form>
+
+        {/* Mobile controls bar */}
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-ink/10 dark:border-slate-700 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileFilterOpen(true)}
+            className="btn-secondary text-xs sm:text-sm py-1.5 px-3 min-h-[38px] flex items-center gap-1.5"
+          >
+            <Filter className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="ml-1 w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-bold inline-flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => nav('/student/map')}
+            className="btn-secondary text-xs sm:text-sm py-1.5 px-3 min-h-[38px] flex items-center gap-1.5"
+          >
+            <Map className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>Map View</span>
+          </button>
+        </div>
       </div>
 
+      {/* Mobile Filter Bottom Sheet / Modal */}
+      {mobileFilterOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileFilterOpen(false)}
+          />
+          <div className="relative bg-white dark:bg-slate-800 rounded-t-3xl p-5 shadow-2xl max-h-[85dvh] flex flex-col z-10 animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-ink/10 dark:border-slate-700">
+              <h3 className="font-semibold text-lg text-ink-700 dark:text-slate-100">Filter Listings</h3>
+              <button
+                type="button"
+                onClick={() => setMobileFilterOpen(false)}
+                className="p-2 text-ink/60 dark:text-slate-400 rounded-full hover:bg-sand-100 dark:hover:bg-slate-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 pr-1 pb-4">
+              {filterContent}
+            </div>
+            <div className="pt-3 border-t border-ink/10 dark:border-slate-700 flex gap-3">
+              <button
+                type="button"
+                onClick={() => { clearFilters(); }}
+                className="btn-secondary flex-1"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileFilterOpen(false)}
+                className="btn-primary flex-1 flex items-center justify-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid Layout */}
       <div className="grid grid-cols-12 gap-6">
-        <aside className="col-span-12 lg:col-span-3">
-          <div className="card p-5 space-y-5 sticky top-24">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-ink-700">Filters</h3>
-                <button onClick={() => setFilters({ query: filters.query, radiusKm: 5, amenities: [], sortBy: 'recommended' } as any)} className="text-xs text-indigo-600 hover:underline font-semibold">Clear all</button>
-              </div>
-            </div>
-
-            <div>
-              <label className="label">Search radius: <span className="font-normal text-ink/55">{filters.radiusKm} km</span></label>
-              <input type="range" min={1} max={20} step={1} value={filters.radiusKm} className="range-slider" onChange={(e) => setFilters({ ...filters, radiusKm: parseInt(e.target.value) })} />
-            </div>
-
-            <div>
-              <label className="label">Price (₹/month)</label>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <input type="number" placeholder="Min" className="input" value={filters.minPrice ?? ''} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value ? parseInt(e.target.value) : undefined })} />
-                <input type="number" placeholder="Max" className="input" value={filters.maxPrice ?? ''} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value ? parseInt(e.target.value) : undefined })} />
-              </div>
-              <input type="range" min={priceRange.min} max={priceRange.max} step={500} value={filters.maxPrice ?? priceRange.max} className="range-slider" onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) })} />
-            </div>
-
-            <div>
-              <label className="label">Gender preference</label>
-              <div className="space-y-2">
-                {[['', 'Any'], ['male', 'Boys'], ['female', 'Girls'], ['unisex', 'Unisex']].map(([v, l]) => (
-                  <label key={v || 'any'} className="flex items-center gap-2 text-sm text-ink-700 cursor-pointer">
-                    <input type="radio" name="gender" className="accent-indigo-600" checked={filters.genderPreference === v} onChange={() => setFilters({ ...filters, genderPreference: v ? (v as any) : undefined })} />
-                    {l}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="label">Amenities</label>
-              <div className="space-y-2">
-                {ALL_AMENITIES.map((a) => (
-                  <label key={a} className="flex items-center gap-2 text-sm text-ink-700 cursor-pointer">
-                    <input type="checkbox" className="accent-indigo-600 rounded" checked={filters.amenities.includes(a)} onChange={() => toggleAmenity(a)} />
-                    {a}
-                  </label>
-                ))}
-              </div>
-            </div>
+        {/* Desktop Filters Sidebar */}
+        <aside className="hidden lg:block lg:col-span-3">
+          <div className="card p-5 space-y-5 sticky top-20">
+            {filterContent}
           </div>
         </aside>
 
+        {/* Search Results Grid */}
         <section className="col-span-12 lg:col-span-9">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-ink/55">
-              {loading ? 'Searching...' : `${results.length} PG${results.length === 1 ? '' : 's'} found ${filters.query ? `near "${filters.query}"` : ''}`}
+            <div className="text-sm text-ink/55 dark:text-slate-400 font-medium">
+              {loading ? 'Searching accommodations...' : `${results.length} PG${results.length === 1 ? '' : 's'} found ${filters.query ? `near "${filters.query}"` : ''}`}
             </div>
+            <button
+              type="button"
+              onClick={() => nav('/student/map')}
+              className="hidden lg:flex btn-secondary text-xs py-1.5 px-3 min-h-[36px] items-center gap-1.5"
+            >
+              <Map className="w-3.5 h-3.5" />
+              Open Map
+            </button>
           </div>
 
           {err && <div className="card p-3 mb-4 text-coral text-sm ring-1 ring-coral/25 bg-coral/[0.07]">{err}</div>}
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {Array.from({ length: 6 }).map((_, i) => <div key={i} className="card aspect-[4/5] animate-pulse bg-sand-100" />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="card aspect-[4/5] animate-pulse bg-sand-100 dark:bg-slate-700/50 rounded-2xl" />
+              ))}
             </div>
           ) : results.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
               {results.map((pg) => <PGCard key={pg._id} pg={pg} />)}
             </div>
           ) : (
