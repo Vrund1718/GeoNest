@@ -11,6 +11,7 @@ import Amenity from '../models/Amenity';
 import { AuthRequest, requireAuth } from '../middleware/auth';
 import { geocodeWithFallback } from '../services/geocoding';
 import { computeDefaultScoreSort, getRecommendations } from '../services/recommend';
+import { computeNeighbourhoodScore, summarizeReviewSentiment } from '../services/commuteService';
 import { sendNotification } from '../utils/notifications';
 import { bookingSchema, reviewSchema, complaintSchema, validate } from '../middleware/validate';
 import { processOverdueComplaintPenalties } from '../services/ratingPenaltyService';
@@ -256,6 +257,12 @@ router.get('/:id', async (req, res) => {
       nearbyGrouped[np.placeType].push(np);
     }
 
+    const neighbourhoodScore = computeNeighbourhoodScore(nearbyGrouped);
+    const reviewSentiment = summarizeReviewSentiment(reviews);
+
+    // Safely increment views counter
+    PGListing.findByIdAndUpdate(id, { $inc: { views: 1 } }).catch(() => {});
+
     return res.json({
       pg,
       images,
@@ -263,6 +270,8 @@ router.get('/:id', async (req, res) => {
       averageRating: effectiveRating,
       reviewCount: reviews.length,
       nearbyPlaces: nearbyGrouped,
+      neighbourhoodScore,
+      reviewSentiment,
     });
   } catch (err) {
     console.error(err);

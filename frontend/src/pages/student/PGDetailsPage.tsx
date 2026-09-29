@@ -50,6 +50,9 @@ export const PGDetailsPage: React.FC = () => {
       .catch(() => {});
   }, []);
 
+  const [neighbourhoodScore, setNeighbourhoodScore] = useState<{ score: number; label: string; details: string[] } | null>(null);
+  const [reviewSentiment, setReviewSentiment] = useState<{ sentimentRatio: string; studentsLike: string[]; studentsDislike: string[] } | null>(null);
+
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
@@ -60,6 +63,8 @@ export const PGDetailsPage: React.FC = () => {
       setReviews(data.reviews || []);
       setAvgRating(data.averageRating);
       setNearby(data.nearbyPlaces || {});
+      if (data.neighbourhoodScore) setNeighbourhoodScore(data.neighbourhoodScore);
+      if (data.reviewSentiment) setReviewSentiment(data.reviewSentiment);
 
       api.get(`/pg/${id}/booked-dates`).then((res) => {
         setBookedRanges(res.data.bookings || []);
@@ -312,6 +317,11 @@ export const PGDetailsPage: React.FC = () => {
                   🎓 {pg.collegeName}
                 </span>
               )}
+              {neighbourhoodScore && (
+                <span className="badge bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 ring-1 ring-purple-200 dark:ring-purple-800" title={neighbourhoodScore.details.join(', ')}>
+                  🏞️ Neighbourhood: {neighbourhoodScore.score}/10 ({neighbourhoodScore.label})
+                </span>
+              )}
             </div>
           </div>
 
@@ -422,6 +432,32 @@ export const PGDetailsPage: React.FC = () => {
                 />
                 <button type="submit" className="btn-primary text-xs sm:text-sm py-2 px-4 min-h-[40px]">Submit Review</button>
               </form>
+            )}
+
+            {reviewSentiment && (
+              <div className="mb-5 p-3.5 sm:p-4 rounded-2xl bg-indigo-50/60 dark:bg-slate-900/60 border border-indigo-100 dark:border-slate-700 space-y-2">
+                <div className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>💡</span>
+                  <span>Student Feedback Sentiment</span>
+                  <span className="badge bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 ml-auto lowercase font-normal">
+                    {reviewSentiment.sentimentRatio}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+                  {reviewSentiment.studentsLike.length > 0 && (
+                    <div>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">Students like:</span>{' '}
+                      <span className="text-slate-700 dark:text-slate-300">{reviewSentiment.studentsLike.join(', ')}</span>
+                    </div>
+                  )}
+                  {reviewSentiment.studentsDislike.length > 0 && (
+                    <div>
+                      <span className="font-semibold text-rose-600 dark:text-rose-400">Students dislike:</span>{' '}
+                      <span className="text-slate-700 dark:text-slate-300">{reviewSentiment.studentsDislike.join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
             {reviews.length === 0 ? (
