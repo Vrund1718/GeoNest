@@ -27,6 +27,7 @@ export interface IPGListing extends Document {
   amenities: mongoose.Types.ObjectId[];
   ratingPenalty: number;
   ratingLogs: IRatingLog[];
+  views?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +51,7 @@ const PGListingSchema: Schema = new Schema(
     isVerified: { type: Boolean, required: true, default: false, index: true },
     status: { type: String, enum: ['active', 'inactive', 'deleted'], required: true, default: 'active', index: true },
     amenities: [{ type: Schema.Types.ObjectId, ref: 'Amenity' }],
+    views: { type: Number, default: 0 },
     ratingPenalty: { type: Number, default: 0, min: 0, max: 4 },
     ratingLogs: [
       {

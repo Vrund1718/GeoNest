@@ -6,6 +6,7 @@ import Review from '../models/Review';
 import Booking from '../models/Booking';
 import Wishlist from '../models/Wishlist';
 import Complaint from '../models/Complaint';
+import Report from '../models/Report';
 import NearbyPlace from '../models/NearbyPlace';
 import Amenity from '../models/Amenity';
 import { AuthRequest, requireAuth } from '../middleware/auth';
@@ -503,6 +504,61 @@ router.post('/:id/complaints', requireAuth, validate(complaintSchema), async (re
   } catch (err: any) {
     console.error(err);
     return res.status(500).json({ error: err.message || 'Failed to file complaint' });
+  }
+});
+
+router.post('/:id/report', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { reason, details } = req.body;
+    if (!reason || !details) {
+      return res.status(400).json({ error: 'Reason and details are required' });
+    }
+    const pg = await PGListing.findById(req.params.id);
+    if (!pg) return res.status(404).json({ error: 'PG listing not found' });
+
+    const report = await Report.create({
+      userId: req.user!._id,
+      pgId: pg._id,
+      reason,
+      details,
+      status: 'pending',
+    });
+
+    return res.status(201).json({ message: 'Report submitted successfully. Admin will review.', report });
+  } catch (err: any) {
+    console.error('Report submission error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to submit report' });
+  }
+});
+
+router.post('/:id/schedule-visit', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { visitDate, timeSlot, notes } = req.body;
+    if (!visitDate) {
+      return res.status(400).json({ error: 'Visit date is required' });
+    }
+    const pg = await PGListing.findById(req.params.id).populate<{ ownerId: any }>('ownerId');
+    if (!pg) return res.status(404).json({ error: 'PG listing not found' });
+
+    const ownerUserId = (pg.ownerId as any)?.userId;
+    if (ownerUserId) {
+      await sendNotification(
+        ownerUserId,
+        'booking_request',
+        'New Visit Scheduled',
+        `${req.user!.name} scheduled a PG visit for "${pg.name}" on ${visitDate} (${timeSlot || 'Anytime'}). Note: ${notes || 'None'}`,
+        { type: 'booking', id: pg._id },
+        `/owner/bookings`
+      );
+    }
+
+    return res.status(200).json({
+      message: 'Visit request submitted! The PG owner has been notified.',
+      visitDetails: { pgName: pg.name, visitDate, timeSlot, notes },
+    });
+  } catch (err: any) {
+    console.error('Schedule visit error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to schedule visit' });
   }
 });
 

@@ -6,7 +6,7 @@ import { CompareDrawer } from '../../components/CompareDrawer';
 import { VoiceSearch } from '../../components/VoiceSearch';
 import { PGListing, SearchFilters } from '../../types';
 import { useNavigate } from 'react-router-dom';
-import { Filter, X, Search, Map, RotateCcw, SlidersHorizontal, Check } from 'lucide-react';
+import { Filter, X, Search, Map, RotateCcw, SlidersHorizontal, Check, Bookmark, Trash2, BookmarkCheck } from 'lucide-react';
 
 const ALL_AMENITIES = ['Wi-Fi', 'Mess', 'Laundry', '24/7 Water', 'AC', 'Parking', 'Gym', 'CCTV', 'Security', 'Lift', 'Study Room'];
 
@@ -25,6 +25,40 @@ export const SearchPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState('Nirma University');
   const [err, setErr] = useState<string | null>(null);
+
+  // Saved Searches state
+  const [savedSearches, setSavedSearches] = useState<{ id: string; name: string; filters: SearchFilters }[]>(() => {
+    try {
+      const raw = localStorage.getItem('geonest_saved_searches');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showSavedMenu, setShowSavedMenu] = useState(false);
+
+  const saveCurrentSearch = () => {
+    const name = (searchInput.trim() || 'Custom Search') + ` (${filters.radiusKm}km)`;
+    const newSaved = [...savedSearches, { id: Date.now().toString(), name, filters: { ...filters } }];
+    setSavedSearches(newSaved);
+    localStorage.setItem('geonest_saved_searches', JSON.stringify(newSaved));
+    toast.success('Search filters saved!');
+  };
+
+  const applySavedSearch = (saved: { name: string; filters: SearchFilters }) => {
+    setFilters(saved.filters);
+    setSearchInput(saved.filters.query || '');
+    setShowSavedMenu(false);
+    toast.success(`Applied saved search: "${saved.name}"`);
+  };
+
+  const deleteSavedSearch = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = savedSearches.filter(s => s.id !== id);
+    setSavedSearches(updated);
+    localStorage.setItem('geonest_saved_searches', JSON.stringify(updated));
+    toast.success('Saved search deleted.');
+  };
 
   // PG Comparison state
   const [comparedPGs, setComparedPGs] = useState<PGListing[]>([]);
@@ -347,6 +381,52 @@ export const SearchPage: React.FC = () => {
               <Search className="w-4 h-4 sm:hidden" />
               <span className="hidden sm:inline">Search</span>
             </button>
+
+            <button
+              type="button"
+              onClick={saveCurrentSearch}
+              className="btn-secondary min-h-[44px] px-3 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800"
+              title="Save current search criteria"
+            >
+              <Bookmark className="w-4 h-4" />
+            </button>
+
+            {savedSearches.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowSavedMenu(!showSavedMenu)}
+                  className="btn-secondary min-h-[44px] px-3 text-indigo-600 dark:text-indigo-400"
+                  title="Saved Searches"
+                >
+                  <BookmarkCheck className="w-4 h-4" />
+                  <span className="hidden md:inline text-xs font-semibold ml-1">({savedSearches.length})</span>
+                </button>
+
+                {showSavedMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden p-2">
+                    <div className="text-xs font-bold text-slate-500 dark:text-slate-400 px-2 py-1 uppercase tracking-wider">Saved Searches</div>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {savedSearches.map((s) => (
+                        <div
+                          key={s.id}
+                          onClick={() => applySavedSearch(s)}
+                          className="flex items-center justify-between p-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-slate-700 cursor-pointer text-xs transition"
+                        >
+                          <span className="truncate font-medium text-slate-700 dark:text-slate-200">{s.name}</span>
+                          <button
+                            onClick={(e) => deleteSavedSearch(s.id, e)}
+                            className="p-1 text-slate-400 hover:text-rose-500"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </form>
 

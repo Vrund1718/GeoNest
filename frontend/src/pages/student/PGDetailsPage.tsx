@@ -53,6 +53,60 @@ export const PGDetailsPage: React.FC = () => {
   const [neighbourhoodScore, setNeighbourhoodScore] = useState<{ score: number; label: string; details: string[] } | null>(null);
   const [reviewSentiment, setReviewSentiment] = useState<{ sentimentRatio: string; studentsLike: string[]; studentsDislike: string[] } | null>(null);
 
+  const [visitModalOpen, setVisitModalOpen] = useState(false);
+  const [visitForm, setVisitForm] = useState({ visitDate: '', timeSlot: 'Morning (9 AM - 12 PM)', notes: '' });
+  const [submittingVisit, setSubmittingVisit] = useState(false);
+
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportForm, setReportForm] = useState({ reason: 'fake_listing', details: '' });
+  const [submittingReport, setSubmittingReport] = useState(false);
+
+  const handleScheduleVisit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error('Please log in to schedule a visit');
+      nav('/login');
+      return;
+    }
+    if (!visitForm.visitDate) {
+      toast.error('Please select a visit date');
+      return;
+    }
+    setSubmittingVisit(true);
+    try {
+      const { data } = await api.post(`/pg/${id}/schedule-visit`, visitForm);
+      toast.success(data.message || 'Visit scheduled successfully!');
+      setVisitModalOpen(false);
+      setVisitForm({ visitDate: '', timeSlot: 'Morning (9 AM - 12 PM)', notes: '' });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to schedule visit');
+    }
+    setSubmittingVisit(false);
+  };
+
+  const handleReportListing = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error('Please log in to report a listing');
+      nav('/login');
+      return;
+    }
+    if (!reportForm.details.trim()) {
+      toast.error('Please provide details for your report');
+      return;
+    }
+    setSubmittingReport(true);
+    try {
+      const { data } = await api.post(`/pg/${id}/report`, reportForm);
+      toast.success(data.message || 'Report submitted successfully');
+      setReportModalOpen(false);
+      setReportForm({ reason: 'fake_listing', details: '' });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to submit report');
+    }
+    setSubmittingReport(false);
+  };
+
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
@@ -285,11 +339,11 @@ export const PGDetailsPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={handleOpenComplaint}
+                  onClick={() => setReportModalOpen(true)}
                   className="btn-secondary text-xs sm:text-sm py-2 px-3 text-rose-600 dark:text-rose-400 flex items-center gap-1.5"
                 >
                   <AlertCircle className="w-4 h-4" />
-                  <span>Report</span>
+                  <span>Report Listing</span>
                 </button>
               </div>
             }
@@ -569,6 +623,15 @@ export const PGDetailsPage: React.FC = () => {
             >
               {booking ? 'Sending Request...' : pg.availableRooms <= 0 ? 'No rooms available' : 'Request to book'}
             </button>
+
+            <button
+              type="button"
+              onClick={() => setVisitModalOpen(true)}
+              className="btn-secondary w-full py-2.5 min-h-[44px] flex items-center justify-center gap-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 mt-2"
+            >
+              <Calendar className="w-4 h-4" />
+              <span>Schedule a Visit</span>
+            </button>
             <p className="text-[11px] text-ink/55 dark:text-slate-400 mt-2 text-center">You won't be charged yet. Owner will review your request.</p>
             
             <div className="separator" />
@@ -580,6 +643,117 @@ export const PGDetailsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Schedule Visit Modal */}
+      {visitModalOpen && pg && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setVisitModalOpen(false)}>
+          <div className="card w-full max-w-md p-6 border dark:border-slate-700 shadow-2xl space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                Schedule a Visit
+              </h3>
+              <button onClick={() => setVisitModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg">✕</button>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Pick a convenient date and time to visit "{pg.name}".</p>
+
+            <form onSubmit={handleScheduleVisit} className="space-y-3.5">
+              <div>
+                <label className="label">Visit Date</label>
+                <input
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                  className="input"
+                  value={visitForm.visitDate}
+                  onChange={(e) => setVisitForm({ ...visitForm, visitDate: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="label">Preferred Time Slot</label>
+                <select
+                  className="input"
+                  value={visitForm.timeSlot}
+                  onChange={(e) => setVisitForm({ ...visitForm, timeSlot: e.target.value })}
+                >
+                  <option value="Morning (9 AM - 12 PM)">Morning (9 AM - 12 PM)</option>
+                  <option value="Afternoon (12 PM - 4 PM)">Afternoon (12 PM - 4 PM)</option>
+                  <option value="Evening (4 PM - 7 PM)">Evening (4 PM - 7 PM)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="label">Notes for Owner (Optional)</label>
+                <textarea
+                  className="input min-h-[80px] py-2"
+                  placeholder="E.g., I'll bring my parent, looking for single sharing room..."
+                  value={visitForm.notes}
+                  onChange={(e) => setVisitForm({ ...visitForm, notes: e.target.value })}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setVisitModalOpen(false)} className="btn-secondary">Cancel</button>
+                <button type="submit" disabled={submittingVisit} className="btn-primary">
+                  {submittingVisit ? 'Scheduling...' : 'Confirm Visit'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Report Listing Modal */}
+      {reportModalOpen && pg && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setReportModalOpen(false)}>
+          <div className="card w-full max-w-md p-6 border dark:border-slate-700 shadow-2xl space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                <AlertCircle className="w-5 h-5" />
+                Report Listing
+              </h3>
+              <button onClick={() => setReportModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg">✕</button>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Flag false information, unfair pricing, or safety concerns regarding "{pg.name}".</p>
+
+            <form onSubmit={handleReportListing} className="space-y-3.5">
+              <div>
+                <label className="label">Reason for reporting</label>
+                <select
+                  className="input"
+                  value={reportForm.reason}
+                  onChange={(e) => setReportForm({ ...reportForm, reason: e.target.value })}
+                >
+                  <option value="fake_listing">Fake or Misleading Listing</option>
+                  <option value="wrong_pricing">Incorrect Price or Hidden Fees</option>
+                  <option value="safety_issue">Unsafe or Unhygienic Environment</option>
+                  <option value="spam">Spam or Offensive Content</option>
+                  <option value="other">Other Issue</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="label">Report Details</label>
+                <textarea
+                  className="input min-h-[90px] py-2"
+                  placeholder="Describe the issue specifically..."
+                  required
+                  value={reportForm.details}
+                  onChange={(e) => setReportForm({ ...reportForm, details: e.target.value })}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setReportModalOpen(false)} className="btn-secondary">Cancel</button>
+                <button type="submit" disabled={submittingReport} className="btn-danger">
+                  {submittingReport ? 'Submitting...' : 'Submit Report'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Complaint Modal */}
       {complaintOpen && (
