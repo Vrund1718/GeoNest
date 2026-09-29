@@ -5,6 +5,7 @@ import api from '../lib/api';
 import { Notification } from '../types';
 import { Menu, X, Bell, LogOut, MapPin, Building, ChevronRight } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { AIChatDrawer } from '../components/AIChatDrawer';
 
 interface NavItem { path: string; label: string; icon: string; }
 
@@ -304,6 +305,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
         <main className="flex-1 p-3 sm:p-6 overflow-x-hidden min-w-0">
           <Outlet />
         </main>
+        <AIChatDrawer />
       </div>
     </div>
   );

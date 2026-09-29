@@ -12,6 +12,7 @@ import geoRoutes from './routes/geo';
 import pgRoutes from './routes/pg';
 import userRoutes from './routes/user';
 import recRoutes from './routes/recommendations';
+import aiRoutes from './routes/ai';
 
 const app = express();
 
@@ -126,6 +127,7 @@ app.use('/admin', adminRoutes);
 app.use('/geo', geoRoutes);
 app.use('/pg/search', searchLimiter);
 app.use('/pg', pgRoutes);
+app.use('/ai', aiRoutes);
 app.use('/recommendations', recLimiter, recRoutes);
 
 app.use('/api/auth/signup', authCredentialLimiter);
@@ -138,6 +140,7 @@ app.use('/api/geo', geoRoutes);
 app.use('/api/pg/search', searchLimiter);
 app.use('/api/pg', pgRoutes);
 app.use('/api/recommendations', recLimiter, recRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.use('/api', userRoutes);
 app.use('/', userRoutes);

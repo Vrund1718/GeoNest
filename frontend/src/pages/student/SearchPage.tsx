@@ -3,6 +3,7 @@ import api from '../../lib/api';
 import toast from 'react-hot-toast';
 import { PGCard, EmptyState, SkeletonCard } from '../../components/shared';
 import { CompareDrawer } from '../../components/CompareDrawer';
+import { VoiceSearch } from '../../components/VoiceSearch';
 import { PGListing, SearchFilters } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Filter, X, Search, Map, RotateCcw, SlidersHorizontal, Check } from 'lucide-react';
@@ -320,6 +321,19 @@ export const SearchPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <VoiceSearch
+              onRawText={(text) => setSearchInput(text)}
+              onFiltersParsed={(parsedFilters) => {
+                setFilters((f) => ({
+                  ...f,
+                  ...parsedFilters,
+                  query: parsedFilters.query || f.query,
+                }));
+                if (parsedFilters.query) {
+                  setSearchInput(parsedFilters.query);
+                }
+              }}
+            />
             <div className="flex-1 sm:w-44">
               <select className="input" value={filters.sortBy} onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}>
                 <option value="recommended">Recommended</option>
