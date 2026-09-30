@@ -1,4 +1,5 @@
 import { computeNeighbourhoodScore, summarizeReviewSentiment } from '../services/commuteService';
+import { isRetryableError } from '../services/aiService';
 
 describe('GeoNest Smart Features & AI Services', () => {
   it('computes neighbourhood score accurately based on nearby place categories', () => {
@@ -32,15 +33,14 @@ describe('GeoNest Smart Features & AI Services', () => {
     }
   });
 
-  it('fallback parsing handles missing AI API key gracefully', () => {
-    const rawPrompt = 'Girls PG near GTU under 8000 per month';
-    const lower = rawPrompt.toLowerCase();
+  it('correctly classifies retryable vs non-retryable errors for AI resilient requests', () => {
+    // 503 UNAVAILABLE & 429 TOO MANY REQUESTS are retryable
+    expect(isRetryableError({ status: 503, message: 'This model is currently experiencing high demand.' })).toBe(true);
+    expect(isRetryableError({ status: 429, message: 'Rate limit exceeded' })).toBe(true);
+    expect(isRetryableError({ message: 'UNAVAILABLE spikes in demand' })).toBe(true);
 
-    const gender = lower.includes('girls') ? 'female' : lower.includes('boys') ? 'male' : undefined;
-    const priceMatch = lower.match(/(?:under|below|max)?\s*(\d{4,5})/);
-    const maxPrice = priceMatch ? parseInt(priceMatch[1]) : undefined;
-
-    expect(gender).toBe('female');
-    expect(maxPrice).toBe(8000);
+    // 401 UNAUTHORIZED & 400 BAD REQUEST must fail fast (never retried)
+    expect(isRetryableError({ status: 401, message: 'API_KEY_INVALID' })).toBe(false);
+    expect(isRetryableError({ status: 400, message: 'INVALID_ARGUMENT' })).toBe(false);
   });
 });

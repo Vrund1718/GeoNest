@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { stripMarkdown } from '../hooks/useVoiceAssistant';
 
 describe('GeoNest UI & AI Upgrade Core Logic', () => {
   it('toggles theme correctly between light and dark', () => {
@@ -34,8 +35,7 @@ describe('GeoNest UI & AI Upgrade Core Logic', () => {
 
   it('safely handles voice search text parsing fallback', () => {
     const rawTranscript = 'Boys PG near Nirma under 10000 with wifi';
-    
-    // Simulating client-side fallback parsing when API key is unconfigured
+
     const lower = rawTranscript.toLowerCase();
     const gender = lower.includes('boys') ? 'male' : lower.includes('girls') ? 'female' : undefined;
     const maxPriceMatch = lower.match(/(?:under|below|max)?\s*(\d{4,5})/);
@@ -45,5 +45,15 @@ describe('GeoNest UI & AI Upgrade Core Logic', () => {
     expect(gender).toBe('male');
     expect(maxPrice).toBe(10000);
     expect(hasWifi).toBe(true);
+  });
+
+  it('strips markdown characters properly before TTS playback', () => {
+    const rawMarkdown = '**Shiv PG** is located near [Nirma University](https://nirmauni.ac.in).\n- Rent: `₹8,000`';
+    const cleanText = stripMarkdown(rawMarkdown);
+
+    expect(cleanText).not.toContain('**');
+    expect(cleanText).not.toContain('`');
+    expect(cleanText).toContain('Shiv PG is located near Nirma University');
+    expect(cleanText).toContain('Rent: ₹8,000');
   });
 });
