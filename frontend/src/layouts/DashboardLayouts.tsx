@@ -119,7 +119,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      <div className="p-4 sm:p-5 border-b border-ink/10 flex items-center justify-between">
+      <div className="p-4 sm:p-5 border-b border-ink/10 dark:border-slate-700 flex items-center justify-between">
         <Link to={navItems[0]?.path || '/'} className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white grid place-items-center shadow-pop shrink-0">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -128,13 +128,13 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
             </svg>
           </div>
           <div>
-            <div className="font-display font-semibold text-ink-700 leading-tight">GeoNest</div>
-            <div className="text-xs text-ink/55">{brand}</div>
+            <div className="font-display font-semibold text-ink-700 dark:text-slate-100 leading-tight">GeoNest</div>
+            <div className="text-xs text-ink/55 dark:text-slate-400">{brand}</div>
           </div>
         </Link>
         <button
           onClick={() => setMobileMenuOpen(false)}
-          className="lg:hidden p-2 text-ink/60 hover:text-ink hover:bg-sand-100 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+          className="lg:hidden p-2 text-ink/60 dark:text-slate-400 hover:text-ink dark:hover:text-slate-100 hover:bg-sand-100 dark:hover:bg-slate-700 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Close menu"
         >
           <X className="w-5 h-5" />
@@ -158,19 +158,19 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
         })}
       </nav>
 
-      <div className="p-3 space-y-2 border-t border-ink/10">
+      <div className="p-3 space-y-2 border-t border-ink/10 dark:border-slate-700">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-ink/70 hover:text-coral hover:bg-coral/5 transition-all group min-h-[44px]"
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-ink/70 dark:text-slate-300 hover:text-coral dark:hover:text-rose-400 hover:bg-coral/5 dark:hover:bg-rose-500/10 transition-all group min-h-[44px]"
         >
-          <LogOut className="w-5 h-5 text-coral/80 group-hover:scale-110 transition-transform" />
+          <LogOut className="w-5 h-5 text-coral/80 dark:text-rose-400 group-hover:scale-110 transition-transform" />
           <span className="font-medium text-sm">Logout</span>
         </button>
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-sand-50 ring-1 ring-ink/10">
-          <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-semibold grid place-items-center text-sm shadow-sm shrink-0">{initials}</div>
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-sand-50 dark:bg-slate-900/60 ring-1 ring-ink/10 dark:ring-slate-700">
+          <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 font-semibold grid place-items-center text-sm shadow-sm shrink-0">{initials}</div>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium text-ink-700 truncate">{user?.name}</div>
-            <div className="text-xs text-ink/55 capitalize truncate">{user?.role}</div>
+            <div className="text-sm font-medium text-ink-700 dark:text-slate-200 truncate">{user?.name}</div>
+            <div className="text-xs text-ink/55 dark:text-slate-400 capitalize truncate">{user?.role}</div>
           </div>
         </div>
       </div>

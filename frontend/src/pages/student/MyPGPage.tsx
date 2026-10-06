@@ -140,53 +140,53 @@ export const MyPGPage: React.FC = () => {
       {pg ? (
         <div className="card overflow-hidden">
           <div className="flex flex-col md:flex-row">
-            <div className="w-full md:w-1/3 aspect-video md:aspect-auto bg-sand-100 overflow-hidden">
+            <div className="w-full md:w-1/3 aspect-video md:aspect-auto bg-sand-100 dark:bg-slate-900 overflow-hidden">
               {pg.primaryImage ? (
                 <img src={pg.primaryImage} alt={pg.name} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-ink/20 text-5xl">🏠</div>
+                <div className="w-full h-full flex items-center justify-center text-ink/20 dark:text-slate-600 text-5xl">🏠</div>
               )}
             </div>
             <div className="p-6 flex-1 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-2xl font-bold text-ink-700">{pg.name}</h2>
+                  <h2 className="text-2xl font-bold text-ink-700 dark:text-slate-100">{pg.name}</h2>
                   <span className={`badge ${
                     activeBooking?.status === 'confirmed'
-                      ? 'bg-sage/10 text-sage'
+                      ? 'bg-sage/10 dark:bg-emerald-950/50 text-sage dark:text-emerald-400'
                       : activeBooking?.status === 'requested'
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-sand-200 text-ink/50'
+                      ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
+                      : 'bg-sand-200 dark:bg-slate-700 text-ink/50 dark:text-slate-400'
                   }`}>
                     {activeBooking?.status === 'requested' ? 'REQUEST PENDING' : activeBooking?.status.toUpperCase()}
                   </span>
                 </div>
-                <p className="text-sm text-ink/55 flex items-center gap-1 mb-4">
+                <p className="text-sm text-ink/55 dark:text-slate-400 flex items-center gap-1 mb-4">
                   <span>📍</span> {pg.address}, {pg.city}
                 </p>
 
                 {activeBooking?.status === 'requested' && (
-                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                  <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-200">
                     ⏳ <strong>Booking Request Pending:</strong> Awaiting confirmation from the PG owner. You can contact the owner or file a complaint below if needed.
                   </div>
                 )}
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-sand-200">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-sand-200 dark:border-slate-700">
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Stay Dates</div>
-                    <div className="text-sm font-medium">{activeBooking?.startDate ? new Date(activeBooking.startDate).toLocaleDateString() : 'N/A'} - {activeBooking?.endDate ? new Date(activeBooking.endDate).toLocaleDateString() : 'N/A'}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-ink/40 dark:text-slate-400 font-bold">Stay Dates</div>
+                    <div className="text-sm font-medium dark:text-slate-200">{activeBooking?.startDate ? new Date(activeBooking.startDate).toLocaleDateString() : 'N/A'} - {activeBooking?.endDate ? new Date(activeBooking.endDate).toLocaleDateString() : 'N/A'}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Monthly Rent</div>
-                    <div className="text-sm font-bold text-indigo-700">₹{pg.pricePerMonth?.toLocaleString() || 0}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-ink/40 dark:text-slate-400 font-bold">Monthly Rent</div>
+                    <div className="text-sm font-bold text-indigo-700 dark:text-indigo-400">₹{pg.pricePerMonth?.toLocaleString() || 0}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Room Type</div>
-                    <div className="text-sm font-medium capitalize">{pg.genderPreference} Sharing</div>
+                    <div className="text-[10px] uppercase tracking-wider text-ink/40 dark:text-slate-400 font-bold">Room Type</div>
+                    <div className="text-sm font-medium dark:text-slate-200 capitalize">{pg.genderPreference} Sharing</div>
                   </div>
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-ink/40 font-bold">Owner Contact</div>
-                    <div className="text-sm font-medium">{owner?.userId?.phone || 'Not available'}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-ink/40 dark:text-slate-400 font-bold">Owner Contact</div>
+                    <div className="text-sm font-medium dark:text-slate-200">{owner?.userId?.phone || 'Not available'}</div>
                   </div>
                 </div>
               </div>
@@ -206,30 +206,30 @@ export const MyPGPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="card p-6 text-center text-ink/50">Accommodation details unavailable.</div>
+        <div className="card p-6 text-center text-ink/50 dark:text-slate-400">Accommodation details unavailable.</div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payment History */}
         <div className="card p-6">
-          <h3 className="font-semibold text-ink-700 mb-4 flex items-center gap-2">
+          <h3 className="font-semibold text-ink-700 dark:text-slate-100 mb-4 flex items-center gap-2">
             <span>💳</span> Payment History
           </h3>
           {payments.length === 0 ? (
-            <div className="py-10 text-center text-sm text-ink/40 bg-sand-50 rounded-xl">No payments found yet.</div>
+            <div className="py-10 text-center text-sm text-ink/40 dark:text-slate-400 bg-sand-50 dark:bg-slate-900/50 rounded-xl">No payments found yet.</div>
           ) : (
             <div className="space-y-3">
               {payments.map(p => (
-                <div key={p._id} className="flex items-center justify-between p-3 bg-sand-50 rounded-xl border border-sand-200">
+                <div key={p._id} className="flex items-center justify-between p-3 bg-sand-50 dark:bg-slate-900/50 rounded-xl border border-sand-200 dark:border-slate-700">
                   <div>
-                    <div className="text-sm font-bold">₹{p.amount.toLocaleString()}</div>
-                    <div className="text-[10px] text-ink/40">{new Date(p.createdAt).toLocaleString()} · {p.paymentMethod}</div>
+                    <div className="text-sm font-bold dark:text-slate-200">₹{p.amount.toLocaleString()}</div>
+                    <div className="text-[10px] text-ink/40 dark:text-slate-400">{new Date(p.createdAt).toLocaleString()} · {p.paymentMethod}</div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${p.status === 'success' ? 'bg-sage/10 text-sage' : 'bg-coral/10 text-coral'}`}>
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${p.status === 'success' ? 'bg-sage/10 dark:bg-emerald-950/50 text-sage dark:text-emerald-400' : 'bg-coral/10 dark:bg-rose-950/50 text-coral dark:text-rose-400'}`}>
                       {p.status}
                     </span>
-                    {p.receiptUrl && <a href={p.receiptUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline text-xs">Receipt</a>}
+                    {p.receiptUrl && <a href={p.receiptUrl} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline text-xs">Receipt</a>}
                   </div>
                 </div>
               ))}
@@ -239,26 +239,26 @@ export const MyPGPage: React.FC = () => {
 
         {/* Support & Complaints */}
         <div className="card p-6">
-          <h3 className="font-semibold text-ink-700 mb-4 flex items-center gap-2">
+          <h3 className="font-semibold text-ink-700 dark:text-slate-100 mb-4 flex items-center gap-2">
             <span>⚠️</span> Recent Complaints
           </h3>
           {complaints.length === 0 ? (
-            <div className="py-10 text-center text-sm text-ink/40 bg-sand-50 rounded-xl">No complaints filed.</div>
+            <div className="py-10 text-center text-sm text-ink/40 dark:text-slate-400 bg-sand-50 dark:bg-slate-900/50 rounded-xl">No complaints filed.</div>
           ) : (
             <div className="space-y-3">
               {complaints.slice(0, 5).map(c => (
-                <div key={c._id} className="p-3 bg-sand-50 rounded-xl border border-sand-200">
+                <div key={c._id} className="p-3 bg-sand-50 dark:bg-slate-900/50 rounded-xl border border-sand-200 dark:border-slate-700">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold capitalize text-indigo-700">{c.type.replace('_', ' ')}</span>
-                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${c.status === 'resolved' ? 'bg-sage/10 text-sage' : 'bg-amber-100 text-amber-700'}`}>
+                    <span className="text-xs font-bold capitalize text-indigo-700 dark:text-indigo-400">{c.type.replace('_', ' ')}</span>
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${c.status === 'resolved' ? 'bg-sage/10 dark:bg-emerald-950/50 text-sage dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'}`}>
                       {c.status.replace('_', ' ')}
                     </span>
                   </div>
-                  <p className="text-xs text-ink/60 line-clamp-1">{c.description}</p>
-                  <div className="text-[9px] text-ink/30 mt-1">{new Date(c.createdAt).toLocaleDateString()}</div>
+                  <p className="text-xs text-ink/60 dark:text-slate-300 line-clamp-1">{c.description}</p>
+                  <div className="text-[9px] text-ink/30 dark:text-slate-500 mt-1">{new Date(c.createdAt).toLocaleDateString()}</div>
                 </div>
               ))}
-              <Link to="/student/complaints" className="block text-center text-xs text-indigo-600 hover:underline mt-4">View all complaints</Link>
+              <Link to="/student/complaints" className="block text-center text-xs text-indigo-600 dark:text-indigo-400 hover:underline mt-4">View all complaints</Link>
             </div>
           )}
         </div>
@@ -266,9 +266,9 @@ export const MyPGPage: React.FC = () => {
 
       {/* Renew Modal */}
       {showRenew && (
-        <div className="fixed inset-0 bg-ink/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="card w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-ink-700 mb-4">Extend Your Stay</h3>
+            <h3 className="text-xl font-bold text-ink-700 dark:text-slate-100 mb-4">Extend Your Stay</h3>
             <form onSubmit={handleRenew} className="space-y-4">
               <div>
                 <label className="label">Extension Start Date</label>
@@ -290,8 +290,8 @@ export const MyPGPage: React.FC = () => {
                   onChange={e => setRenewDates(d => ({ ...d, end: e.target.value }))}
                 />
               </div>
-              <div className="bg-indigo-50 p-4 rounded-xl">
-                <p className="text-sm text-indigo-700">Rent will be charged at <b>₹{pg.pricePerMonth.toLocaleString()}/month</b>. The owner will review and approve your request.</p>
+              <div className="bg-indigo-50 dark:bg-indigo-950/50 p-4 rounded-xl">
+                <p className="text-sm text-indigo-700 dark:text-indigo-300">Rent will be charged at <b>₹{pg.pricePerMonth.toLocaleString()}/month</b>. The owner will review and approve your request.</p>
               </div>
               <div className="flex gap-3">
                 <button type="button" onClick={() => setShowRenew(false)} className="btn-secondary flex-1">Cancel</button>
@@ -304,19 +304,19 @@ export const MyPGPage: React.FC = () => {
 
       {/* Pay Modal */}
       {showPay && (
-        <div className="fixed inset-0 bg-ink/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="card w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-ink-700 mb-4">Pay Your Rent</h3>
+            <h3 className="text-xl font-bold text-ink-700 dark:text-slate-100 mb-4">Pay Your Rent</h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-sand-50 rounded-xl">
-                <span className="text-sm text-ink/60">Current Dues</span>
-                <span className="text-2xl font-bold text-ink-700">₹{pg.pricePerMonth.toLocaleString()}</span>
+              <div className="flex items-center justify-between p-4 bg-sand-50 dark:bg-slate-900/50 rounded-xl">
+                <span className="text-sm text-ink/60 dark:text-slate-400">Current Dues</span>
+                <span className="text-2xl font-bold text-ink-700 dark:text-slate-100">₹{pg.pricePerMonth.toLocaleString()}</span>
               </div>
               <div className="space-y-2">
                 <label className="label text-xs">Payment Method</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <button className="p-3 border-2 border-indigo-600 bg-indigo-50 rounded-xl text-sm font-semibold">Credit/Debit Card</button>
-                  <button className="p-3 border-2 border-sand-200 hover:border-sand-300 rounded-xl text-sm font-semibold">UPI / Net Banking</button>
+                  <button className="p-3 border-2 border-indigo-600 bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 rounded-xl text-sm font-semibold">Credit/Debit Card</button>
+                  <button className="p-3 border-2 border-sand-200 dark:border-slate-700 hover:border-sand-300 dark:hover:border-slate-600 rounded-xl text-sm font-semibold text-ink-700 dark:text-slate-200">UPI / Net Banking</button>
                 </div>
               </div>
               <div className="flex gap-3 pt-4">
@@ -330,9 +330,9 @@ export const MyPGPage: React.FC = () => {
 
       {/* Complaint Modal */}
       {showComplaint && (
-        <div className="fixed inset-0 bg-ink/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="card w-full max-w-lg p-6 animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-bold text-ink-700 mb-4">File a Complaint</h3>
+            <h3 className="text-xl font-bold text-ink-700 dark:text-slate-100 mb-4">File a Complaint</h3>
             <form onSubmit={handleComplaint} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -385,11 +385,11 @@ export const MyPGPage: React.FC = () => {
               <div>
                 <label className="label">Photos (Optional)</label>
                 <div className="flex gap-2">
-                  <div className="w-16 h-16 border-2 border-dashed border-sand-300 rounded-xl flex items-center justify-center text-ink/20 cursor-pointer hover:border-indigo-400 hover:text-indigo-400 transition-colors">
+                  <div className="w-16 h-16 border-2 border-dashed border-sand-300 dark:border-slate-700 rounded-xl flex items-center justify-center text-ink/20 dark:text-slate-600 cursor-pointer hover:border-indigo-400 hover:text-indigo-400 transition-colors">
                     <span>+</span>
                   </div>
                 </div>
-                <p className="text-[10px] text-ink/30 mt-1">Maximum 3 photos, up to 5MB each.</p>
+                <p className="text-[10px] text-ink/30 dark:text-slate-500 mt-1">Maximum 3 photos, up to 5MB each.</p>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowComplaint(false)} className="btn-secondary flex-1">Cancel</button>
@@ -402,7 +402,7 @@ export const MyPGPage: React.FC = () => {
 
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-[200] card shadow-pop px-5 py-3 bg-ink-700 text-white text-sm border-ink-700 animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-6 right-6 z-[200] card shadow-pop px-5 py-3 bg-ink-700 dark:bg-slate-800 text-white text-sm border-ink-700 dark:border-slate-700 animate-in slide-in-from-bottom-5 duration-300">
           {toast}
         </div>
       )}

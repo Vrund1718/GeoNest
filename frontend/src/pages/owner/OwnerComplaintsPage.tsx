@@ -4,7 +4,9 @@ import { Complaint } from '../../types';
 import { EmptyState, PageHeader } from '../../components/shared';
 
 const statusColor = (s: Complaint['status']) =>
-  s === 'open' ? 'bg-red-50 text-red-700' : s === 'in_progress' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700';
+  s === 'open' ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300' :
+  s === 'in_progress' ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300' :
+  'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300';
 
 export const OwnerComplaintsPage: React.FC = () => {
   const [items, setItems] = useState<Complaint[]>([]);
@@ -54,28 +56,28 @@ export const OwnerComplaintsPage: React.FC = () => {
     <div>
       <PageHeader title="Complaints Management" subtitle="Respond to student issues and set estimated resolution timelines." />
       {loading ? (
-        <div className="space-y-3">{Array.from({length:3}).map((_,i) => <div key={i} className="card h-24 animate-pulse bg-slate-100" />)}</div>
+        <div className="space-y-3">{Array.from({length:3}).map((_,i) => <div key={i} className="card h-24 animate-pulse bg-slate-100 dark:bg-slate-800" />)}</div>
       ) : items.length === 0 ? (
         <EmptyState title="No complaints yet 🎉" description="Great — nothing needs your attention right now." icon="✅" />
       ) : (
-        <div className="card divide-y divide-slate-100">
+        <div className="card divide-y divide-slate-100 dark:divide-slate-700">
           {items.map((c) => {
             const isOverdue = c.ratingDeducted;
             return (
               <div key={c._id} id={`complaint-${c._id}`} className="p-5 transition-all duration-500 space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="font-semibold text-slate-800 flex items-center gap-2">
+                    <div className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                       <span>{(c.pgId as any)?.name || 'PG'}</span>
-                      <span className="text-slate-300">·</span>
+                      <span className="text-slate-300 dark:text-slate-600">·</span>
                       <span className="capitalize">{c.type.replace('_', ' ')}</span>
                       {isOverdue && (
-                        <span className="badge bg-red-100 text-red-700 text-xs font-bold border border-red-200">
+                        <span className="badge bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-xs font-bold border border-rose-200 dark:border-rose-800">
                           ⚠️ Rating Penalty Applied (-0.5 pts)
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">by {(c.userId as any)?.name || 'Student'} ({(c.userId as any)?.email}) · {new Date(c.createdAt).toLocaleString()}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">by {(c.userId as any)?.name || 'Student'} ({(c.userId as any)?.email}) · {new Date(c.createdAt).toLocaleString()}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`badge capitalize ${statusColor(c.status)}`}>{c.status.replace('_', ' ')}</span>
@@ -85,23 +87,23 @@ export const OwnerComplaintsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <p className="text-sm text-slate-600 bg-sand-50 p-3 rounded-lg border border-sand-200">{c.description}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300 bg-sand-50 dark:bg-slate-900/60 p-3 rounded-lg border border-sand-200 dark:border-slate-700">{c.description}</p>
 
                 {c.estimatedResolutionDate && (
-                  <div className="text-xs text-indigo-800 bg-indigo-50/70 p-2.5 rounded-md border border-indigo-100 flex items-center justify-between">
+                  <div className="text-xs text-indigo-800 dark:text-indigo-200 bg-indigo-50/70 dark:bg-indigo-950/50 p-2.5 rounded-md border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between">
                     <span>⏱️ <strong>Estimated Resolution Time:</strong> {c.estimatedResolutionHours} hours (Target: {new Date(c.estimatedResolutionDate).toLocaleString()})</span>
-                    {c.status !== 'resolved' && <span className="text-[10px] text-amber-700 font-medium">⚠️ Resolve within 7 days to prevent auto rating deduction</span>}
+                    {c.status !== 'resolved' && <span className="text-[10px] text-amber-700 dark:text-amber-300 font-medium">⚠️ Resolve within 7 days to prevent auto rating deduction</span>}
                   </div>
                 )}
 
                 {c.responses && c.responses.length > 0 && (
-                  <div className="mt-2 space-y-2 border-t border-slate-100 pt-2">
-                    <div className="text-xs font-semibold text-slate-700">Response History:</div>
+                  <div className="mt-2 space-y-2 border-t border-slate-100 dark:border-slate-700 pt-2">
+                    <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">Response History:</div>
                     {c.responses.map((resp, i) => (
-                      <div key={i} className="text-xs text-slate-600 pl-3 border-l-2 border-indigo-400">
-                        <span className="font-semibold capitalize text-indigo-900">{resp.role}: </span>
+                      <div key={i} className="text-xs text-slate-600 dark:text-slate-300 pl-3 border-l-2 border-indigo-400 dark:border-indigo-500">
+                        <span className="font-semibold capitalize text-indigo-900 dark:text-indigo-200">{resp.role}: </span>
                         <span>{resp.message}</span>
-                        <span className="text-[10px] text-slate-400 ml-2">({new Date(resp.createdAt).toLocaleString()})</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-2">({new Date(resp.createdAt).toLocaleString()})</span>
                       </div>
                     ))}
                   </div>
@@ -114,11 +116,11 @@ export const OwnerComplaintsPage: React.FC = () => {
 
       {/* Owner Respond & Timeline Modal */}
       {selectedComplaint && (
-        <div className="fixed inset-0 z-50 bg-ink-700/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="card w-full max-w-md p-6 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b border-sand-200 pb-3">
-              <h3 className="font-bold text-lg text-slate-800">Update Complaint Timeline</h3>
-              <button onClick={() => setSelectedComplaint(null)} className="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+            <div className="flex justify-between items-center border-b border-sand-200 dark:border-slate-700 pb-3">
+              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">Update Complaint Timeline</h3>
+              <button onClick={() => setSelectedComplaint(null)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 text-lg">✕</button>
             </div>
 
             <form onSubmit={handleUpdateComplaint} className="space-y-4">
@@ -141,7 +143,7 @@ export const OwnerComplaintsPage: React.FC = () => {
                   <option value={120}>120 Hours (5 Days)</option>
                   <option value={168}>168 Hours (7 Days - Max Limit)</option>
                 </select>
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                   💡 Note: Unresolved complaints after 7 days will automatically deduct -0.5 points from your PG rating.
                 </p>
               </div>

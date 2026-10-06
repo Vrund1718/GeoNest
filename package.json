@@ -1,4 +1,12 @@
 {
+  "name": "geonest-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "build:backend": "npm --prefix backend run build",
+    "test": "npm --prefix frontend test && npm --prefix backend test",
+    "lint": "npm --prefix frontend run lint && npm --prefix backend run lint"
+  },
   "dependencies": {
     "leaflet": "^1.9.4",
     "lucide-react": "^1.27.0",

@@ -326,7 +326,7 @@ export const AIChatDrawer: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-40 p-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-500 dark:to-indigo-600 text-white rounded-2xl shadow-2xl hover:scale-105 transition-all flex items-center gap-2 group min-w-[52px] min-h-[52px] border-2 border-white/20 active:scale-95"
+          className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 p-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-500 dark:to-indigo-600 text-white rounded-2xl shadow-2xl hover:scale-105 transition-all flex items-center gap-2 group min-w-[52px] min-h-[52px] border-2 border-white/20 active:scale-95"
           aria-label="Open AI Assistant"
         >
           <Bot className="w-6 h-6 group-hover:rotate-12 transition-transform" />

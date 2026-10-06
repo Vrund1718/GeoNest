@@ -121,7 +121,11 @@ body {
 }
 
 html.dark .leaflet-container {
-  background: #1a202c;
+  background: #1e293b;
+}
+
+html.dark .leaflet-tile {
+  filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg);
 }
 
 .range-slider {

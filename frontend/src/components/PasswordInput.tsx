@@ -55,19 +55,19 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             aria-label={show ? 'Hide password' : 'Show password'}
             aria-pressed={show}
             aria-controls={inputId}
-            className="absolute top-1/2 right-2 -translate-y-1/2 inline-flex items-center justify-center h-8 w-8 rounded-md text-ink/60 hover:text-ink hover:bg-sand-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-marigold focus-visible:ring-offset-2 focus-visible:ring-offset-white transition"
+            className="absolute top-1/2 right-2 -translate-y-1/2 inline-flex items-center justify-center h-8 w-8 rounded-md text-ink/60 hover:text-ink hover:bg-sand-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-marigold focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 transition"
           >
             <span className="sr-only">{show ? 'Hide password' : 'Show password'}</span>
             {show ? <EyeOffIcon /> : <EyeIcon />}
           </button>
         </div>
         {error && (
-          <p id={`${inputId}-error`} role="alert" className="mt-1.5 text-xs text-coral">
+          <p id={`${inputId}-error`} role="alert" className="mt-1.5 text-xs text-coral dark:text-rose-400">
             {error}
           </p>
         )}
         {!error && hint && (
-          <p className="mt-1.5 text-[11px] text-ink/50 leading-relaxed">{hint}</p>
+          <p className="mt-1.5 text-[11px] text-ink/50 dark:text-slate-400 leading-relaxed">{hint}</p>
         )}
       </div>
     );

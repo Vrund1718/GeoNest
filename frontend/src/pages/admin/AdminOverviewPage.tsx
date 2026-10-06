@@ -98,7 +98,7 @@ export const AdminOverviewPage: React.FC = () => {
                       {report.reason?.replace('_', ' ')}
                     </span>
                     <span className={`badge capitalize text-[10px] ${
-                      report.status === 'pending' ? 'bg-amber-100 text-amber-800' : report.status === 'action_taken' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'
+                      report.status === 'pending' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300' : report.status === 'action_taken' ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                     }`}>
                       {report.status}
                     </span>

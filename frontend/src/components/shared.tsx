@@ -24,9 +24,13 @@ export const RatingStars: React.FC<{ rating: number | null | undefined; size?: '
           }`}
         />
       ))}
-      {rating != null && (
+      {rating != null && rating > 0 ? (
         <span className={`text-${size === 'sm' ? 'xs' : 'sm'} text-ink/55 dark:text-slate-400 font-medium ml-1`}>
           {rating.toFixed(1)}
+        </span>
+      ) : (
+        <span className={`text-${size === 'sm' ? 'xs' : 'sm'} text-slate-400 dark:text-slate-500 font-medium ml-1`}>
+          No reviews yet
         </span>
       )}
     </div>
@@ -53,6 +57,13 @@ export const PGCard: React.FC<{
     e.stopPropagation();
     if (onCompareToggle) onCompareToggle(pg);
   };
+
+  const isObjectId = (str: string) => /^[0-9a-fA-F]{24}$/.test(str);
+  const cleanAmenities = Array.isArray(pg.amenities)
+    ? pg.amenities
+        .map((a) => (typeof a === 'string' ? a : a?.name))
+        .filter((name): name is string => Boolean(name) && !isObjectId(name))
+    : [];
 
   const cardInner = (
     <div className="card overflow-hidden h-full flex flex-col hover:shadow-pop dark:hover:shadow-slate-700/30 transition-all duration-200 group border dark:border-slate-700">
@@ -87,6 +98,7 @@ export const PGCard: React.FC<{
           <button
             type="button"
             onClick={handleCompareClick}
+            aria-label={isCompared ? `Remove ${pg.name} from compare` : `Add ${pg.name} to compare`}
             className={`absolute bottom-2.5 right-2.5 badge z-10 transition-all shadow-md flex items-center gap-1 ${
               isCompared
                 ? 'bg-indigo-600 text-white ring-2 ring-indigo-400'
@@ -101,7 +113,7 @@ export const PGCard: React.FC<{
 
       <div className="p-3.5 sm:p-4 flex-1 flex flex-col">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-ink-700 dark:text-slate-100 line-clamp-1 text-sm sm:text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 line-clamp-1 text-sm sm:text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
             {pg.name}
           </h3>
         </div>
@@ -114,19 +126,25 @@ export const PGCard: React.FC<{
           )}
         </div>
 
-        {Array.isArray(pg.amenities) && pg.amenities.length > 0 && (
+        {cleanAmenities.length > 0 ? (
           <div className="mt-2.5 flex flex-wrap gap-1">
-            {pg.amenities.slice(0, 4).map((a) => (
+            {cleanAmenities.slice(0, 4).map((amenity) => (
               <span
-                key={typeof a === 'string' ? a : a._id}
+                key={amenity}
                 className="badge bg-sand-50 dark:bg-slate-700/80 text-ink-600 dark:text-slate-300 ring-1 ring-ink/10 dark:ring-slate-600 text-[11px]"
               >
-                {typeof a === 'string' ? a : a.name}
+                {amenity}
               </span>
             ))}
-            {pg.amenities.length > 4 && (
-              <span className="badge text-ink/40 dark:text-slate-500 text-[11px]">+{pg.amenities.length - 4}</span>
+            {cleanAmenities.length > 4 && (
+              <span className="badge text-ink/40 dark:text-slate-500 text-[11px]">+{cleanAmenities.length - 4}</span>
             )}
+          </div>
+        ) : (
+          <div className="mt-2.5 flex flex-wrap gap-1">
+            <span className="badge bg-sand-50 dark:bg-slate-700/80 text-ink-600 dark:text-slate-300 ring-1 ring-ink/10 dark:ring-slate-600 text-[11px]">
+              {pg.availableRooms > 0 ? `${pg.availableRooms} rooms available` : 'Fully booked'}
+            </span>
           </div>
         )}
 

@@ -5,9 +5,9 @@ import { Complaint } from '../../types';
 import { EmptyState, PageHeader } from '../../components/shared';
 
 const statusColor = (s: Complaint['status']) =>
-  s === 'open' ? 'bg-red-50 text-red-700' :
-  s === 'in_progress' ? 'bg-amber-50 text-amber-700' :
-  'bg-emerald-50 text-emerald-700';
+  s === 'open' ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300' :
+  s === 'in_progress' ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300' :
+  'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300';
 
 export const ComplaintsPage: React.FC = () => {
   const [items, setItems] = useState<Complaint[]>([]);
@@ -80,11 +80,11 @@ export const ComplaintsPage: React.FC = () => {
       />
 
       {!hasActive && (
-        <div className="card p-5 bg-amber-50 border-amber-200 text-amber-900 flex items-start gap-4">
+        <div className="card p-5 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 flex items-start gap-4">
           <div className="text-3xl">🔒</div>
           <div>
-            <h4 className="font-bold text-sm text-amber-950">No Registered PG Found</h4>
-            <p className="text-xs text-amber-800 mt-1">
+            <h4 className="font-bold text-sm text-amber-950 dark:text-amber-100">No Registered PG Found</h4>
+            <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">
               You can file a complaint once you register or book a PG accommodation.
             </p>
           </div>
@@ -93,11 +93,11 @@ export const ComplaintsPage: React.FC = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="card w-full max-w-lg p-6 space-y-4 animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-lg text-slate-800">Raise a Complaint</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+            <div className="flex items-center justify-between border-b border-sand-200 dark:border-slate-700 pb-3">
+              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">Raise a Complaint</h3>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 text-lg">✕</button>
             </div>
 
             <form onSubmit={handleCreateComplaint} className="space-y-4">
@@ -184,40 +184,40 @@ export const ComplaintsPage: React.FC = () => {
       )}
 
       {toast && (
-        <div className="fixed bottom-6 right-6 z-[60] card shadow-pop px-5 py-3 bg-slate-900 text-white text-sm border-slate-800">{toast}</div>
+        <div className="fixed bottom-6 right-6 z-[60] card shadow-pop px-5 py-3 bg-slate-900 dark:bg-slate-800 text-white text-sm border-slate-800 dark:border-slate-700">{toast}</div>
       )}
 
       {loading ? (
-        <div className="space-y-3">{Array.from({length:3}).map((_,i) => <div key={i} className="card h-24 animate-pulse bg-slate-100" />)}</div>
+        <div className="space-y-3">{Array.from({length:3}).map((_,i) => <div key={i} className="card h-24 animate-pulse bg-slate-100 dark:bg-slate-800" />)}</div>
       ) : items.length === 0 ? (
         <EmptyState title="No complaints filed" description="Report any accommodation issues once you have an active PG stay." icon="⚠️" />
       ) : (
-        <div className="card divide-y divide-slate-100">
+        <div className="card divide-y divide-slate-100 dark:divide-slate-700">
           {items.map((c) => (
             <div key={c._id} id={`complaint-${c._id}`} className="p-5 transition-all duration-500">
               <div className="flex items-start justify-between gap-4 mb-2">
                 <div>
-                  <div className="font-semibold text-slate-800">
+                  <div className="font-semibold text-slate-800 dark:text-slate-100">
                     <Link to={`/pg/${(c.pgId as any)?._id || c.pgId}`} className="link">{(c.pgId as any)?.name || 'PG'}</Link>
-                    <span className="mx-2 text-slate-300">·</span>
+                    <span className="mx-2 text-slate-300 dark:text-slate-600">·</span>
                     <span className="capitalize">{c.type.replace('_', ' ')}</span>
                   </div>
-                  <div className="text-xs text-slate-500 mt-0.5">Filed on {new Date(c.createdAt).toLocaleString()}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Filed on {new Date(c.createdAt).toLocaleString()}</div>
                 </div>
                 <span className={`badge ${statusColor(c.status)} capitalize`}>{c.status.replace('_', ' ')}</span>
               </div>
               
-              <p className="text-sm text-slate-600 mb-3">{c.description}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{c.description}</p>
 
               {c.estimatedResolutionDate && c.status !== 'resolved' && (
-                <div className="text-xs p-2.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-800 flex items-center justify-between">
+                <div className="text-xs p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/60 text-indigo-800 dark:text-indigo-200 flex items-center justify-between">
                   <span>⏱️ <strong>Estimated Resolution:</strong> {c.estimatedResolutionHours}h ({new Date(c.estimatedResolutionDate).toLocaleString()})</span>
-                  {c.ratingDeducted && <span className="badge bg-red-100 text-red-700 font-semibold">Overdue Rating Deduction Applied</span>}
+                  {c.ratingDeducted && <span className="badge bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-semibold">Overdue Rating Deduction Applied</span>}
                 </div>
               )}
 
               {c.status === 'resolved' && c.resolvedAt && (
-                <p className="mt-3 text-xs text-emerald-600 bg-emerald-50 rounded-md p-2 border border-emerald-100">Resolved on {new Date(c.resolvedAt).toLocaleString()}</p>
+                <p className="mt-3 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 rounded-md p-2 border border-emerald-100 dark:border-emerald-900/60">Resolved on {new Date(c.resolvedAt).toLocaleString()}</p>
               )}
             </div>
           ))}

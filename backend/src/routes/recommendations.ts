@@ -36,10 +36,13 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
       const avgRating = reviewsInfo?.count
         ? Math.round((reviewsInfo.sum / reviewsInfo.count) * 10) / 10
         : null;
+      
+      const pgObj = (r.pg as any).toObject ? (r.pg as any).toObject() : r.pg;
+
       return {
         ...r,
         pg: {
-          ...(r.pg as any).toObject(),
+          ...pgObj,
           primaryImage: imageMap.get(pgId) || null,
           averageRating: avgRating,
           reviewCount: reviewsInfo?.count || 0,
