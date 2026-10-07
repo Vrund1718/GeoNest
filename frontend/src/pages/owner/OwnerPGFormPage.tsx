@@ -124,17 +124,88 @@ export const OwnerPGFormPage: React.FC = () => {
     setSaving(false);
   };
 
-  const uploadImages = async (files: FileList) => {
-    if (!id) { showToast('Please save the PG first'); return; }
+  const [pendingPreviews, setPendingPreviews] = useState<{ file: File; previewUrl: string }[]>([]);
+
+  const handleFileSelection = (files: FileList) => {
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const newPending: { file: File; previewUrl: string }[] = [];
+    Array.from(files).forEach((f) => {
+      if (!validTypes.includes(f.type)) {
+        showToast(`"${f.name}" is not a valid format. Use JPG, PNG, or WEBP.`);
+        return;
+      }
+      if (f.size > 5 * 1024 * 1024) {
+        showToast(`"${f.name}" exceeds 5MB limit.`);
+        return;
+      }
+      newPending.push({ file: f, previewUrl: URL.createObjectURL(f) });
+    });
+
+    if (newPending.length > 0) {
+      setPendingPreviews((prev) => [...prev, ...newPending]);
+    }
+  };
+
+  const removePendingPreview = (index: number) => {
+    setPendingPreviews((prev) => {
+      const target = prev[index];
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const uploadImages = async (filesToUpload?: File[]) => {
+    let pgId = id;
+    if (!pgId) {
+      showToast('Please save PG basic details first');
+      return;
+    }
+    const targetFiles = filesToUpload || pendingPreviews.map((p) => p.file);
+    if (targetFiles.length === 0) {
+      showToast('Please select images to upload');
+      return;
+    }
+
     const fd = new FormData();
-    Array.from(files).forEach(f => fd.append('images', f));
+    targetFiles.forEach((f) => fd.append('images', f));
     setUploading(true);
     try {
-      const { data } = await api.post(`/owners/pg/${id}/images`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const { data } = await api.post(`/owners/pg/${pgId}/images`, fd);
       setImages((i) => [...i, ...(data.images || [])]);
-      showToast(`Uploaded ${data.images?.length || 0} image(s)`);
-    } catch (e: any) { showToast(e.response?.data?.error || 'Upload failed'); }
+      setPendingPreviews([]);
+      showToast(`Successfully uploaded ${data.images?.length || 0} image(s)!`);
+    } catch (e: any) {
+      showToast(e.response?.data?.error || 'Upload failed');
+    }
     setUploading(false);
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    if (!id) return;
+    if (!confirm('Are you sure you want to delete this image?')) return;
+    try {
+      await api.delete(`/owners/pg/${id}/images/${imageId}`);
+      setImages((prev) => prev.filter((img) => img._id !== imageId));
+      showToast('Image deleted');
+    } catch (e: any) {
+      showToast(e.response?.data?.error || 'Failed to delete image');
+    }
+  };
+
+  const handleSetPrimaryImage = async (imageId: string) => {
+    if (!id) return;
+    try {
+      await api.put(`/owners/pg/${id}/images/${imageId}/primary`);
+      setImages((prev) =>
+        prev.map((img) => ({
+          ...img,
+          isPrimary: img._id === imageId,
+        }))
+      );
+      showToast('Primary cover image updated');
+    } catch (e: any) {
+      showToast(e.response?.data?.error || 'Failed to update primary image');
+    }
   };
 
   const validateStep = (s: number) => {
@@ -407,36 +478,107 @@ export const OwnerPGFormPage: React.FC = () => {
         )}
 
         {step === 4 && (
-          <div className="space-y-4">
-            {!id ? (
-              <div className="card p-6 text-center border-dashed border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/30">
-                <AlertCircle className="w-10 h-10 text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
-                <p className="font-medium text-ink-700 dark:text-slate-200">Save the PG details first before uploading images.</p>
-                <button onClick={saveBasic} disabled={saving} className="btn-primary mt-4">
-                  {saving ? 'Saving...' : 'Save PG & upload images'}
-                </button>
-              </div>
-            ) : (
-              <>
-                <label className="block border-2 border-dashed border-ink/20 dark:border-slate-700 rounded-2xl p-6 sm:p-8 text-center hover:border-indigo-500 hover:bg-indigo-50/40 dark:hover:bg-slate-700/50 transition cursor-pointer">
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => e.target.files && uploadImages(e.target.files)} disabled={uploading} />
-                  <Upload className="w-10 h-10 text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
-                  <p className="font-medium text-ink-700 dark:text-slate-200 text-sm sm:text-base">
-                    {uploading ? 'Uploading images...' : 'Drop images or click to browse'}
+          <div className="space-y-6">
+            {!id && (
+              <div className="card p-4 sm:p-5 border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <p className="text-xs sm:text-sm font-medium text-amber-900 dark:text-amber-200">
+                    Click "Save & Upload" below to save PG details and upload your selected images.
                   </p>
-                  <p className="text-xs text-ink/55 dark:text-slate-400 mt-1">JPG, PNG, WEBP · up to 5MB each</p>
-                </label>
-                {images.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {images.map((img) => (
-                      <div key={img._id} className="relative aspect-square rounded-xl overflow-hidden group border border-ink/15 dark:border-slate-700">
-                        <img src={img.url} alt="" className="w-full h-full object-cover" />
-                        {img.isPrimary && <span className="absolute top-2 left-2 badge bg-indigo-600 text-white text-[10px]">Primary</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
+                </div>
+              </div>
+            )}
+
+            {/* Dropzone File Selector */}
+            <label className="block border-2 border-dashed border-ink/20 dark:border-slate-700 rounded-2xl p-6 sm:p-8 text-center hover:border-indigo-500 hover:bg-indigo-50/40 dark:hover:bg-slate-700/50 transition cursor-pointer">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                className="hidden"
+                onChange={(e) => e.target.files && handleFileSelection(e.target.files)}
+                disabled={uploading}
+              />
+              <Upload className="w-10 h-10 text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
+              <p className="font-medium text-ink-700 dark:text-slate-200 text-sm sm:text-base">
+                Drop images here or click to browse
+              </p>
+              <p className="text-xs text-ink/55 dark:text-slate-400 mt-1">JPG, PNG, WEBP · up to 5MB per image</p>
+            </label>
+
+            {/* Pending Previews (not yet uploaded to server) */}
+            {pendingPreviews.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                    Selected Images Ready To Upload ({pendingPreviews.length})
+                  </h4>
+                  {id && (
+                    <button
+                      type="button"
+                      onClick={() => uploadImages()}
+                      disabled={uploading}
+                      className="btn-primary text-xs py-1.5 px-3 min-h-[36px]"
+                    >
+                      {uploading ? 'Uploading...' : 'Upload Now'}
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {pendingPreviews.map((prev, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group border border-indigo-400/50 ring-2 ring-indigo-500/30">
+                      <img src={prev.previewUrl} alt="" className="w-full h-full object-cover" />
+                      <span className="absolute top-2 left-2 badge bg-indigo-600 text-white text-[10px]">Pending</span>
+                      <button
+                        type="button"
+                        onClick={() => removePendingPreview(idx)}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700 transition shadow-md"
+                        title="Remove preview"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Existing Uploaded Images */}
+            {images.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-semibold text-xs sm:text-sm text-ink-700 dark:text-slate-200 uppercase tracking-wider">
+                  Uploaded Gallery ({images.length})
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {images.map((img) => (
+                    <div key={img._id} className="relative aspect-square rounded-xl overflow-hidden group border border-ink/15 dark:border-slate-700 bg-sand-100 dark:bg-slate-700">
+                      <img src={img.url} alt="" className="w-full h-full object-cover" />
+                      {img.isPrimary ? (
+                        <span className="absolute top-2 left-2 badge bg-indigo-600 text-white text-[10px] font-bold shadow-sm">
+                          ★ Primary
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSetPrimaryImage(img._id)}
+                          className="absolute top-2 left-2 badge bg-slate-900/70 hover:bg-indigo-600 text-white text-[10px] opacity-0 group-hover:opacity-100 transition shadow-sm"
+                        >
+                          Make Primary
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteImage(img._id)}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-rose-600/90 text-white hover:bg-rose-700 opacity-0 group-hover:opacity-100 transition shadow-md"
+                        title="Delete image"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -459,8 +601,33 @@ export const OwnerPGFormPage: React.FC = () => {
                 <span>{saving ? 'Saving...' : step === 3 && !editMode ? 'Create PG' : 'Next'}</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
+            ) : !id ? (
+              <button
+                onClick={async () => {
+                  await saveBasic();
+                  if (pendingPreviews.length > 0) {
+                    await uploadImages();
+                  }
+                  nav('/owner');
+                }}
+                disabled={saving || uploading}
+                className="btn-primary"
+              >
+                <span>{saving || uploading ? 'Saving & Uploading...' : 'Save PG & Finish'}</span>
+              </button>
             ) : (
-              <button onClick={() => nav('/owner')} className="btn-primary">Finish</button>
+              <button
+                onClick={async () => {
+                  if (pendingPreviews.length > 0) {
+                    await uploadImages();
+                  }
+                  nav('/owner');
+                }}
+                disabled={uploading}
+                className="btn-primary"
+              >
+                <span>{uploading ? 'Uploading...' : 'Finish'}</span>
+              </button>
             )}
           </div>
         </div>
@@ -472,3 +639,4 @@ export const OwnerPGFormPage: React.FC = () => {
     </div>
   );
 };
+

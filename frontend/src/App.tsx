@@ -48,7 +48,7 @@ const App: React.FC = () => {
         <Route path="/signup" element={<GuestOnlyRoute><SignupPage /></GuestOnlyRoute>} />
 
         <Route path="/pg/:id" element={
-          <div className="min-h-screen bg-sand-50 p-4 md:p-6"><PGDetailRoute /></div>
+          <div className="min-h-screen bg-sand-50 dark:bg-slate-900 text-ink-700 dark:text-slate-100 p-4 md:p-6 transition-colors duration-200"><PGDetailRoute /></div>
         } />
 
         <Route path="/student" element={
@@ -98,11 +98,11 @@ const App: React.FC = () => {
 const NotFound: React.FC = () => {
   const nav = useNavigate();
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-sand-50">
-      <div className="card p-10 max-w-md text-center shadow-paper">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-sand-50 dark:bg-slate-900 transition-colors">
+      <div className="card p-10 max-w-md text-center shadow-paper border dark:border-slate-700">
         <div className="text-6xl mb-4">🧭</div>
         <h1 className="h1 mb-2">Page not found</h1>
-        <p className="text-ink/55 mb-6">The page you're looking for doesn't exist.</p>
+        <p className="text-ink/55 dark:text-slate-400 mb-6">The page you're looking for doesn't exist.</p>
         <button className="btn-primary" onClick={() => nav('/')}>Go home</button>
       </div>
     </div>

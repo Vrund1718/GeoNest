@@ -14,8 +14,8 @@ export const ProtectedRoute: React.FC<Props> = ({ children, roles }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-sand-50">
-        <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full shadow-sm" />
+      <div className="min-h-screen flex items-center justify-center bg-sand-50 dark:bg-slate-900 transition-colors">
+        <div className="animate-spin w-10 h-10 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full shadow-sm" />
       </div>
     );
   }
@@ -32,8 +32,8 @@ export const GuestOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ childr
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-sand-50">
-        <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full shadow-sm" />
+      <div className="min-h-screen flex items-center justify-center bg-sand-50 dark:bg-slate-900 transition-colors">
+        <div className="animate-spin w-10 h-10 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full shadow-sm" />
       </div>
     );
   }
@@ -48,8 +48,8 @@ export const RoleHomeRedirect: React.FC = () => {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-sand-50">
-        <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full shadow-sm" />
+      <div className="min-h-screen flex items-center justify-center bg-sand-50 dark:bg-slate-900 transition-colors">
+        <div className="animate-spin w-10 h-10 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full shadow-sm" />
       </div>
     );
   }

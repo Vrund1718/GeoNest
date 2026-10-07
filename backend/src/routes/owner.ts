@@ -243,10 +243,13 @@ router.post('/pg/:id/images', upload.array('images', 10), async (req: AuthReques
     }
 
     const files = (req.files as Express.Multer.File[]) || [];
+    if (files.length === 0) {
+      return res.status(400).json({ error: 'No image files provided' });
+    }
     const existing = await Image.countDocuments({ pgId: pg._id });
     const created: any[] = [];
     for (let i = 0; i < files.length; i++) {
-      const { url } = await uploadImage(files[i].path);
+      const { url } = await uploadImage(files[i]);
       const isPrimary = existing === 0 && i === 0;
       const img = await Image.create({
         pgId: pg._id,
@@ -262,6 +265,54 @@ router.post('/pg/:id/images', upload.array('images', 10), async (req: AuthReques
     return res.status(500).json({ error: err.message || 'Upload failed' });
   }
 });
+
+router.delete('/pg/:id/images/:imageId', async (req: AuthRequest, res) => {
+  try {
+    const owner = await getOwnerForUser(req.user!._id, req.user!.role);
+    const pg = await PGListing.findById(req.params.id);
+    if (!pg) return res.status(404).json({ error: 'PG not found' });
+    if (req.user!.role !== 'admin' && String(pg.ownerId) !== String(owner?._id)) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const img = await Image.findOneAndDelete({ _id: req.params.imageId, pgId: pg._id });
+    if (!img) return res.status(404).json({ error: 'Image not found' });
+
+    if (img.isPrimary) {
+      const nextImg = await Image.findOne({ pgId: pg._id }).sort({ createdAt: 1 });
+      if (nextImg) {
+        nextImg.isPrimary = true;
+        await nextImg.save();
+      }
+    }
+
+    return res.json({ message: 'Image deleted successfully' });
+  } catch (err: any) {
+    console.error(err);
+    return res.status(500).json({ error: err.message || 'Failed to delete image' });
+  }
+});
+
+router.put('/pg/:id/images/:imageId/primary', async (req: AuthRequest, res) => {
+  try {
+    const owner = await getOwnerForUser(req.user!._id, req.user!.role);
+    const pg = await PGListing.findById(req.params.id);
+    if (!pg) return res.status(404).json({ error: 'PG not found' });
+    if (req.user!.role !== 'admin' && String(pg.ownerId) !== String(owner?._id)) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    await Image.updateMany({ pgId: pg._id }, { $set: { isPrimary: false } });
+    const img = await Image.findOneAndUpdate({ _id: req.params.imageId, pgId: pg._id }, { $set: { isPrimary: true } }, { new: true });
+    if (!img) return res.status(404).json({ error: 'Image not found' });
+
+    return res.json({ image: img });
+  } catch (err: any) {
+    console.error(err);
+    return res.status(500).json({ error: err.message || 'Failed to update primary image' });
+  }
+});
+
 
 router.get('/bookings', async (req: AuthRequest, res) => {
   try {
