@@ -8,6 +8,12 @@ const PUBLIC_AUTH_URLS = new Set([
   '/auth/verify-otp',
 ]);
 
+const AI_URLS = new Set([
+  '/ai/chat',
+  '/ai/assistant',
+  '/ai/parse-search',
+]);
+
 const rawApiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 const baseURL = rawApiUrl
   ? (rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`)
@@ -47,7 +53,8 @@ api.interceptors.response.use(
     if (
       status === 401 &&
       !originalRequest?._retry &&
-      !urlMatches(originalRequest, PUBLIC_AUTH_URLS)
+      !urlMatches(originalRequest, PUBLIC_AUTH_URLS) &&
+      !urlMatches(originalRequest, AI_URLS)
     ) {
       originalRequest._retry = true;
 

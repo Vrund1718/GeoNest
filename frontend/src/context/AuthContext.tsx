@@ -26,7 +26,7 @@ function extractApiError(err: any, fallback: string) {
   if (Array.isArray(data?.errors)) {
     return data.errors.map((e: { message?: string }) => e.message).filter(Boolean).join(', ') || fallback;
   }
-  if (!err.response) return 'Cannot reach server — is the backend running on port 5000?';
+  if (!err.response) return 'Cannot connect to server. Please check your network connection.';
   return fallback;
 }
 

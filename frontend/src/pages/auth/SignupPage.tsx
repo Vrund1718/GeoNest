@@ -120,9 +120,9 @@ export const SignupPage: React.FC = () => {
   const fe = (k: string) => fieldErrors[k];
 
   return (
-    <div className="min-h-screen flex bg-sand-50">
+    <div className="min-h-screen flex bg-sand-50 dark:bg-slate-900 transition-colors duration-200">
       <div className="hidden md:flex md:w-1/2 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-800 via-indigo-700 to-indigo-900" />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-800 via-indigo-700 to-indigo-900 dark:from-indigo-950 dark:via-indigo-900 dark:to-slate-900" />
         <div
           className="absolute inset-0 opacity-[0.07]"
           style={{
@@ -206,15 +206,15 @@ export const SignupPage: React.FC = () => {
                 <path d="M5 9.5V21h14V9.5" />
               </svg>
             </div>
-            <p className="font-display text-ink-700 text-lg tracking-tight">GeoNest</p>
+            <p className="font-display text-ink-700 dark:text-slate-100 text-lg tracking-tight">GeoNest</p>
           </div>
 
-          <div className="rounded-3xl bg-white shadow-paper ring-1 ring-ink/5 p-7 sm:p-9">
-            <h2 className="font-display text-2xl tracking-tight text-ink-700">Create your account</h2>
-            <p className="text-sm text-ink/60 mt-1.5">Start your accommodation journey.</p>
+          <div className="rounded-3xl bg-white dark:bg-slate-800 shadow-paper ring-1 ring-ink/5 dark:ring-slate-700 p-7 sm:p-9">
+            <h2 className="font-display text-2xl tracking-tight text-ink-700 dark:text-slate-100">Create your account</h2>
+            <p className="text-sm text-ink/60 dark:text-slate-400 mt-1.5">Start your accommodation journey.</p>
 
             {err && (
-              <div role="alert" className="mt-6 flex items-start gap-3 rounded-2xl border border-coral/25 bg-coral/[0.07] text-coral px-4 py-3 text-sm leading-relaxed">
+              <div role="alert" className="mt-6 flex items-start gap-3 rounded-2xl border border-coral/25 bg-coral/[0.07] text-coral dark:text-rose-400 px-4 py-3 text-sm leading-relaxed">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 8v4M12 16h.01" />
@@ -238,8 +238,8 @@ export const SignupPage: React.FC = () => {
                         onClick={() => setF('role', r)}
                         className={`py-2.5 rounded-xl border text-sm font-medium capitalize transition
                           ${active
-                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm ring-2 ring-indigo-500/20'
-                            : 'border-ink/15 text-ink/70 hover:bg-sand-100 hover:border-ink/25'}`}
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 shadow-sm ring-2 ring-indigo-500/20'
+                            : 'border-ink/15 dark:border-slate-700 text-ink/70 dark:text-slate-300 hover:bg-sand-100 dark:hover:bg-slate-700 hover:border-ink/25 dark:hover:border-slate-600'}`}
                       >
                         {r}
                       </button>
@@ -250,7 +250,7 @@ export const SignupPage: React.FC = () => {
 
               <div>
                 <label htmlFor="signup-name" className="label">
-                  Full name {fe('name') && <span className="text-coral font-normal ml-2 text-xs">{fe('name')}</span>}
+                  Full name {fe('name') && <span className="text-coral dark:text-rose-400 font-normal ml-2 text-xs">{fe('name')}</span>}
                 </label>
                 <input
                   id="signup-name"
@@ -265,7 +265,7 @@ export const SignupPage: React.FC = () => {
 
               <div>
                 <label htmlFor="signup-email" className="label">
-                  Email {fe('email') && <span className="text-coral font-normal ml-2 text-xs">{fe('email')}</span>}
+                  Email {fe('email') && <span className="text-coral dark:text-rose-400 font-normal ml-2 text-xs">{fe('email')}</span>}
                 </label>
                 <input
                   id="signup-email"
@@ -281,20 +281,20 @@ export const SignupPage: React.FC = () => {
               <div>
                 <label htmlFor="signup-phone" className="label flex items-center justify-between">
                   <span>
-                    Phone {fe('phone') && <span className="text-coral font-normal ml-2 text-xs">{fe('phone')}</span>}
+                    Phone {fe('phone') && <span className="text-coral dark:text-rose-400 font-normal ml-2 text-xs">{fe('phone')}</span>}
                   </span>
                   <div className="flex items-center gap-2">
                     {otpSent && !otpVerified && (
                       <button
                         type="button"
                         onClick={handleChangePhone}
-                        className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold underline"
+                        className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold underline"
                       >
                         Change number
                       </button>
                     )}
                     {otpVerified && (
-                      <span className="flex items-center gap-1 text-[11px] font-semibold text-sage uppercase tracking-wider">
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-sage dark:text-emerald-400 uppercase tracking-wider">
                         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
@@ -306,14 +306,14 @@ export const SignupPage: React.FC = () => {
                 <div className="flex gap-2">
                   <div className="relative flex-1 group">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                      <span className="text-sm font-semibold text-ink/40 group-focus-within:text-indigo-500 transition-colors">+91</span>
+                      <span className="text-sm font-semibold text-ink/40 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors">+91</span>
                     </div>
                     <input
                       id="signup-phone"
                       type="tel"
                       required
                       disabled={otpSent || otpVerified}
-                      className={`input w-full pl-12 ${fe('phone') ? 'border-coral/60 focus:ring-coral/30 focus:border-coral' : ''} ${otpVerified ? 'border-sage/40 bg-sage/[0.03]' : ''}`}
+                      className={`input w-full pl-12 ${fe('phone') ? 'border-coral/60 focus:ring-coral/30 focus:border-coral' : ''} ${otpVerified ? 'border-sage/40 dark:border-emerald-500/40 bg-sage/[0.03] dark:bg-emerald-950/20' : ''}`}
                       value={form.phone}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '').slice(0, 10);
@@ -337,7 +337,7 @@ export const SignupPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleChangePhone}
-                      className="btn-secondary px-3.5 h-11 text-xs whitespace-nowrap rounded-xl hover:bg-sand-200"
+                      className="btn-secondary px-3.5 h-11 text-xs whitespace-nowrap rounded-xl"
                     >
                       Edit
                     </button>
@@ -345,30 +345,30 @@ export const SignupPage: React.FC = () => {
                 </div>
 
                 {otpSent && !otpVerified && (
-                  <div className="mt-3 space-y-3 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 animate-in fade-in slide-in-from-top-2">
+                  <div className="mt-3 space-y-3 p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 animate-in fade-in slide-in-from-top-2">
                     {devOtpHint && (
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200">
                         <span>💡 Trial/Dev OTP: <strong>{devOtpHint}</strong></span>
                         <button
                           type="button"
                           onClick={() => setOtp(devOtpHint)}
-                          className="text-[11px] font-bold text-indigo-700 hover:underline uppercase tracking-wider"
+                          className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 hover:underline uppercase tracking-wider"
                         >
                           Auto-fill
                         </button>
                       </div>
                     )}
                     <div className="flex items-center justify-between">
-                      <label htmlFor="otp-input" className="text-xs font-semibold text-indigo-900 uppercase tracking-wider">
+                      <label htmlFor="otp-input" className="text-xs font-semibold text-indigo-900 dark:text-indigo-200 uppercase tracking-wider">
                         Enter 6-digit OTP
                       </label>
                       {resendTimer > 0 ? (
-                        <span className="text-[10px] text-indigo-600 font-medium">Resend in {resendTimer}s</span>
+                        <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">Resend in {resendTimer}s</span>
                       ) : (
                         <button
                           type="button"
                           onClick={handleSendOtp}
-                          className="text-[10px] text-indigo-600 font-bold hover:text-indigo-800 underline uppercase tracking-wider"
+                          className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:text-indigo-800 dark:hover:text-indigo-300 underline uppercase tracking-wider"
                         >
                           Resend OTP
                         </button>
@@ -425,12 +425,12 @@ export const SignupPage: React.FC = () => {
               </button>
             </form>
 
-            <p className="text-sm text-ink/70 mt-6 text-center">
+            <p className="text-sm text-ink/70 dark:text-slate-300 mt-6 text-center">
               Already have an account? <Link to="/login" className="link font-semibold">Login</Link>
             </p>
           </div>
 
-          <p className="text-center text-[11px] text-ink/40 mt-6">
+          <p className="text-center text-[11px] text-ink/40 dark:text-slate-500 mt-6">
             By signing up you agree to our terms & privacy. We never share your phone with landlords.
           </p>
         </div>

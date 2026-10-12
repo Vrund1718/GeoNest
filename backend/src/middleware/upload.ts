@@ -1,13 +1,6 @@
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import { config, isCloudinaryEnabled } from '../config';
 import { v2 as cloudinary } from 'cloudinary';
-
-const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
 
 if (isCloudinaryEnabled) {
   cloudinary.config({
@@ -17,36 +10,41 @@ if (isCloudinaryEnabled) {
   });
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `img-${uniqueSuffix}${path.extname(file.originalname)}`);
-  },
-});
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-
-const fileFilter = (req: any, file: any, cb: any) => {
+const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
   if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only JPG, PNG, WEBP, and GIF images are allowed'), false);
+    cb(new Error('Only JPG, PNG, and WEBP images are allowed'), false);
   }
 };
 
 export const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-export const uploadImage = async (filePath: string): Promise<{ url: string; isCloudinary: boolean }> => {
+export const uploadImage = async (file: Express.Multer.File): Promise<{ url: string; isCloudinary: boolean }> => {
   if (isCloudinaryEnabled) {
-    const result = await cloudinary.uploader.upload(filePath, { folder: 'smart-pg' });
-    fs.unlinkSync(filePath);
-    return { url: result.secure_url, isCloudinary: true };
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: 'smart-pg' },
+        (error, result) => {
+          if (error || !result) {
+            return reject(error || new Error('Cloudinary upload failed'));
+          }
+          resolve({ url: result.secure_url, isCloudinary: true });
+        }
+      );
+      uploadStream.end(file.buffer);
+    });
   }
-  const relative = `/uploads/${path.basename(filePath)}`;
-  return { url: relative, isCloudinary: false };
+
+  // Fallback when Cloudinary is not configured: Data URI (works on Vercel read-only filesystem)
+  const base64 = file.buffer.toString('base64');
+  const dataUri = `data:${file.mimetype};base64,${base64}`;
+  return { url: dataUri, isCloudinary: false };
 };
+

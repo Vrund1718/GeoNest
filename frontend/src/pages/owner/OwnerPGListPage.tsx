@@ -210,10 +210,10 @@ export const OwnerPGListPage: React.FC = () => {
                         <span
                           className={`badge capitalize ring-1 ${
                             pg.status === 'active'
-                              ? 'bg-sage/10 text-sage ring-sage/20'
+                              ? 'bg-sage/10 dark:bg-emerald-950/60 text-sage dark:text-emerald-400 ring-sage/20 dark:ring-emerald-800'
                               : pg.status === 'inactive'
-                              ? 'bg-marigold-50 text-marigold-600 ring-marigold-100'
-                              : 'bg-sand-100 text-ink/60 ring-ink/10'
+                              ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 ring-amber-200 dark:ring-amber-800'
+                              : 'bg-sand-100 dark:bg-slate-700 text-ink/60 dark:text-slate-300 ring-ink/10 dark:ring-slate-600'
                           }`}
                         >
                           {pg.status}
@@ -221,9 +221,9 @@ export const OwnerPGListPage: React.FC = () => {
                       </td>
                       <td className="table-cell">
                         {pg.isVerified ? (
-                          <span className="badge bg-sage/10 text-sage ring-1 ring-sage/20">✓ Yes</span>
+                          <span className="badge bg-sage/10 dark:bg-emerald-950/60 text-sage dark:text-emerald-400 ring-1 ring-sage/20 dark:ring-emerald-800">✓ Yes</span>
                         ) : (
-                          <span className="badge bg-marigold-50 text-marigold-600 ring-1 ring-marigold-100">Pending</span>
+                          <span className="badge bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 ring-1 ring-amber-200 dark:ring-amber-800">Pending</span>
                         )}
                       </td>
                       <td className="table-cell text-right">

@@ -4,7 +4,9 @@ import { Complaint } from '../../types';
 import { EmptyState, PageHeader } from '../../components/shared';
 
 const statusColor = (s: Complaint['status']) =>
-  s === 'open' ? 'bg-red-50 text-red-700' : s === 'in_progress' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700';
+  s === 'open' ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300' :
+  s === 'in_progress' ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300' :
+  'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300';
 
 export const AdminComplaintsPage: React.FC = () => {
   const [items, setItems] = useState<Complaint[]>([]);
@@ -39,24 +41,24 @@ export const AdminComplaintsPage: React.FC = () => {
         </select>
       } />
       {loading ? (
-        <div className="space-y-3">{Array.from({length:5}).map((_,i) => <div key={i} className="card h-24 animate-pulse bg-slate-100" />)}</div>
+        <div className="space-y-3">{Array.from({length:5}).map((_,i) => <div key={i} className="card h-24 animate-pulse bg-slate-100 dark:bg-slate-800" />)}</div>
       ) : items.length === 0 ? (
         <EmptyState title="No complaints match the filter" icon="✅" />
       ) : (
-        <div className="card divide-y divide-slate-100">
+        <div className="card divide-y divide-slate-100 dark:divide-slate-700">
           {items.map((c) => (
             <div key={c._id} className="p-5">
               <div className="flex items-start justify-between gap-4 mb-2">
                 <div>
-                  <div className="font-semibold text-slate-800 flex items-center gap-2">
-                    <span className="capitalize badge bg-slate-50 text-slate-700">{c.type.replace('_',' ')}</span>
+                  <div className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <span className="capitalize badge bg-sand-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600">{c.type.replace('_',' ')}</span>
                     {(c.pgId as any)?.name || 'Accommodation'}
                   </div>
-                  <div className="text-xs text-slate-500 mt-0.5">Filed by {(c.userId as any)?.name || 'Student'}{(c.userId as any)?.email ? ` (${(c.userId as any).email})` : ''} · {new Date(c.createdAt).toLocaleString()}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Filed by {(c.userId as any)?.name || 'Student'}{(c.userId as any)?.email ? ` (${(c.userId as any).email})` : ''} · {new Date(c.createdAt).toLocaleString()}</div>
                 </div>
                 <span className={`badge capitalize ${statusColor(c.status)}`}>{c.status.replace('_', ' ')}</span>
               </div>
-              <p className="text-sm text-slate-600 mb-4">{c.description}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{c.description}</p>
               <div className="flex gap-2 justify-end">
                 {c.status !== 'open' && (
                   <button onClick={() => setStatus(c._id, 'open')} disabled={saving === c._id} className="btn-danger !py-1 !px-3 text-xs">Open</button>

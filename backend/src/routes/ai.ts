@@ -98,9 +98,12 @@ const handleChatHandler = async (req: Request, res: Response) => {
 
     if (
       status === 503 ||
+      status === 404 ||
       errMessage.includes('503') ||
+      errMessage.includes('404') ||
       errMessage.includes('unavailable') ||
       errMessage.includes('high demand') ||
+      errMessage.includes('no longer available') ||
       errMessage.includes('spikes in demand')
     ) {
       return res.status(503).json({

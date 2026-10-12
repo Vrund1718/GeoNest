@@ -3,5 +3,12 @@ dist
 .env
 .DS_Store
 *.log
+<<<<<<< HEAD
 .vercel
 .env*
+=======
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+>>>>>>> 8b2400eb7a71ced43174a9f3fcabafbc29609b5a

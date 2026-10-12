@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
+import mongoose from 'mongoose';
 import { config } from '../config';
 import PGListing from '../models/PGListing';
 
@@ -103,7 +104,7 @@ User input: "${sanitizedText}"
 Return ONLY valid raw JSON with no markdown formatting or markdown codeblocks.`;
 
     const response = await ai.models.generateContent({
-      model: config.geminiModel || 'gemini-2.0-flash',
+      model: config.geminiModel || 'gemini-3.5-flash-lite',
       contents: prompt,
     });
 
@@ -135,7 +136,7 @@ async function generateWithTimeout(
   modelName: string,
   formattedContents: any[],
   systemInstruction: string,
-  timeoutMs: number = 20000
+  timeoutMs: number = 7500
 ): Promise<string> {
   let timeoutId: NodeJS.Timeout;
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -166,6 +167,30 @@ async function generateWithTimeout(
   }
 }
 
+const formatDbFallbackResponse = (pgs: any[], query: string): string => {
+  if (!pgs || pgs.length === 0) {
+    return `I searched GeoNest, but no PG accommodations currently match your exact criteria ("${query}"). Try increasing your budget or searching for a broader area!`;
+  }
+
+  const items = pgs
+    .map((pg, idx) => {
+      const amenities = (pg.amenities || [])
+        .map((a: any) => (typeof a === 'string' ? a : a?.name))
+        .filter(Boolean)
+        .slice(0, 4)
+        .join(', ') || 'Wi-Fi, Security';
+
+      const rating = pg.averageRating ? `${pg.averageRating}/5 ⭐` : 'Verified';
+      const college = pg.collegeName ? ` (Near ${pg.collegeName})` : '';
+      const rooms = pg.availableRooms !== undefined ? `${pg.availableRooms} rooms available` : 'Available';
+
+      return `${idx + 1}. **${pg.name}** — ₹${pg.pricePerMonth}/month\n   📍 ${pg.address || ''}, ${pg.city || ''}${college}\n   🏷️ Preference: ${pg.genderPreference || 'unisex'} | ⭐ ${rating} | 🛌 ${rooms}\n   ✨ Amenities: ${amenities}`;
+    })
+    .join('\n\n');
+
+  return `Here are top PG accommodations from GeoNest matching your query:\n\n${items}\n\n*(Note: Direct database grounding returned due to AI service timeout)*`;
+};
+
 export const handleAiChat = async (
   messages: ChatMessage[],
   appContext?: Record<string, any>
@@ -179,7 +204,7 @@ export const handleAiChat = async (
   const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user')?.content?.trim() || '';
   const cacheKey = lastUserMessage.toLowerCase().trim();
 
-  // Check cache for quick suggestion queries (if messages history is short <= 2)
+  // Check cache for short repeat queries
   if (messages.length <= 2 && cacheKey) {
     const cached = chatCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
@@ -188,61 +213,146 @@ export const handleAiChat = async (
     }
   }
 
-  // Extract search terms for PG database context
+  // Intelligent DB query grounding based on user message
   let pgResults: any[] = [];
   try {
-    const searchTerms = lastUserMessage.split(/\s+/).filter((w) => w.length > 3).slice(0, 3);
-    const queryCond = searchTerms.length > 0
-      ? {
-          $or: [
-            { name: { $regex: searchTerms.join('|'), $options: 'i' } },
-            { city: { $regex: searchTerms.join('|'), $options: 'i' } },
-            { collegeName: { $regex: searchTerms.join('|'), $options: 'i' } },
-            { address: { $regex: searchTerms.join('|'), $options: 'i' } },
-          ],
-        }
-      : {};
+    if (mongoose.connection.readyState === 1) {
+      const dbFilter: any = { status: { $ne: 'deleted' } };
 
-    pgResults = await PGListing.find(queryCond).limit(5).lean();
-    if (pgResults.length === 0 && searchTerms.length > 0) {
-      pgResults = await PGListing.find({}).limit(5).lean();
+    // Extract price constraint (e.g. 10k, 10 k, 10000, 10,000, under 12k)
+    let parsedPrice: number | null = null;
+    const kMatch = lastUserMessage.match(/(?:under|below|less than|within|\bmax\b|budget of)?\s*₹?\s*(\d+(?:\.\d+)?)\s*k\b/i);
+    if (kMatch) {
+      parsedPrice = Math.round(parseFloat(kMatch[1]) * 1000);
+    } else {
+      const standardMatch =
+        lastUserMessage.match(/(?:under|below|less than|within|\bmax\b|budget of)\s*₹?\s*(\d{4,6}|\d{1,2},\d{3})/i) ||
+        lastUserMessage.match(/₹?\s*(\d{4,6})/);
+      if (standardMatch) {
+        parsedPrice = parseInt(standardMatch[1].replace(/,/g, ''), 10);
+      }
+    }
+
+    if (parsedPrice && parsedPrice >= 500) {
+      dbFilter.pricePerMonth = { $lte: parsedPrice };
+    }
+
+    // Extract gender preference constraint
+    if (/\b(?:girls?|female|women)\b/i.test(lastUserMessage)) {
+      dbFilter.genderPreference = { $in: ['female', 'unisex'] };
+    } else if (/\b(?:boys?|male|men)\b/i.test(lastUserMessage)) {
+      dbFilter.genderPreference = { $in: ['male', 'unisex'] };
+    }
+
+    // Extract search keywords filtering out stop words
+    const stopWords = new Set([
+      'under', 'below', 'less', 'than', 'pgs', 'pg', 'hostels', 'hostel', 'show', 'me',
+      'which', 'find', 'best', 'top', 'with', 'in', 'for', 'rs', 'inr', 'k', 'near',
+      'compare', 'options', 'available', 'room', 'rooms', 'rent', 'and', 'the', 'a', 'an'
+    ]);
+    const keywords = lastUserMessage
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !stopWords.has(w) && isNaN(Number(w)));
+
+    if (keywords.length > 0) {
+      const searchRegex = new RegExp(keywords.join('|'), 'i');
+      dbFilter.$or = [
+        { city: searchRegex },
+        { collegeName: searchRegex },
+        { address: searchRegex },
+        { name: searchRegex },
+      ];
+    }
+
+    pgResults = await PGListing.find(dbFilter)
+      .select('name city address collegeName pricePerMonth securityDeposit genderPreference averageRating availableRooms totalRooms isVerified amenities')
+      .populate({ path: 'amenities', select: 'name' })
+      .limit(5)
+      .lean();
+
+    // Fallback search if strict filter returned 0 items
+    if (pgResults.length === 0) {
+      const relaxedFilter: any = { status: { $ne: 'deleted' } };
+      if (keywords.length > 0) {
+        const searchRegex = new RegExp(keywords.join('|'), 'i');
+        relaxedFilter.$or = [
+          { city: searchRegex },
+          { collegeName: searchRegex },
+          { address: searchRegex },
+          { name: searchRegex },
+        ];
+      }
+      pgResults = await PGListing.find(relaxedFilter)
+        .select('name city address collegeName pricePerMonth securityDeposit genderPreference averageRating availableRooms totalRooms isVerified amenities')
+        .populate({ path: 'amenities', select: 'name' })
+        .limit(5)
+        .lean();
+    }
+
+    if (pgResults.length === 0) {
+      pgResults = await PGListing.find({ status: { $ne: 'deleted' } })
+        .select('name city address collegeName pricePerMonth securityDeposit genderPreference averageRating availableRooms totalRooms isVerified amenities')
+        .populate({ path: 'amenities', select: 'name' })
+        .limit(5)
+        .lean();
+      }
     }
   } catch (dbErr) {
     console.warn('[AI Service] Non-critical DB context fetch warning:', dbErr);
   }
 
-  const contextData = pgResults.map((pg) => ({
-    id: pg._id,
-    name: pg.name,
-    city: pg.city,
-    address: pg.address,
-    college: pg.collegeName || 'N/A',
-    rent: pg.pricePerMonth,
-    gender: pg.genderPreference,
-    availableRooms: pg.availableRooms,
-    rating: (pg as any).averageRating || 'N/A',
-  }));
+  const contextData = pgResults.map((pg) => {
+    const cleanAmenities = (pg.amenities || [])
+      .map((a: any) => (typeof a === 'string' ? a : a?.name))
+      .filter(Boolean);
 
-  const systemInstruction = `You are GeoNest Assistant, a helpful, accurate, concise assistant inside the GeoNest app. Answer the user's actual question directly. Use the app context provided (user's location, current page, selected item, and relevant app data) when it helps. If you don't know something or the data isn't available, say so instead of guessing. Never repeat the same generic answer. Keep answers short and clear, use simple language, and ask a clarifying question if the request is ambiguous. Reply in the same language the user writes in.
+    return {
+      id: pg._id,
+      name: pg.name,
+      city: pg.city,
+      address: pg.address,
+      college: pg.collegeName || 'N/A',
+      rentPerMonth: `₹${pg.pricePerMonth}`,
+      securityDeposit: `₹${pg.securityDeposit || 0}`,
+      genderPreference: pg.genderPreference,
+      availableRooms: pg.availableRooms,
+      totalRooms: pg.totalRooms,
+      isVerified: Boolean(pg.isVerified),
+      rating: pg.averageRating ? `${pg.averageRating}/5` : 'No ratings yet',
+      amenities: cleanAmenities.join(', ') || 'Standard PG facilities',
+    };
+  });
 
-CURRENT GEONEST DATABASE LISTINGS AVAILABLE FOR REFERENCE:
+  const systemInstruction = `You are "GeoNest Assistant", an intelligent, concise, and helpful AI assistant for GeoNest — an accommodation and PG (paying guest) listing platform in India.
+
+YOUR CORE RESPONSIBILITIES & RULES:
+1. Help users search, compare, and find PG accommodations, understand listing details (rent, security deposit, amenities, location, rooms available), and guide them on how to use GeoNest features (such as adding a PG as an owner, booking a stay, scheduling visits, or using search filters).
+2. Answer ONLY topics related to GeoNest, accommodation, student living, and site navigation.
+3. If asked off-topic questions (e.g. weather, sports, general math, external news), politely stay on topic: "I am GeoNest Assistant! I focus on accommodation and PG listings in GeoNest. I can help you find PGs, compare options, or guide you on listing your property, but I don't have weather or external real-time data."
+4. Ground ALL your accommodation answers strictly in the real database listings provided below. Never invent fake PG names, prices, or locations. If no PGs match the requested budget or filters, clearly state that no exact matches were found in the database and present the available options from the database.
+5. Be concise, friendly, and structured. Use Markdown formatting (bolding, bullet points) when listing PGs. Reply in the same language the user writes in.
+
+REAL GEONEST DATABASE LISTINGS AVAILABLE FOR GROUNDING:
 ${JSON.stringify(contextData, null, 2)}
 
-${appContext ? `CURRENT APP CONTEXT FROM USER SESSION:\n${JSON.stringify(appContext, null, 2)}` : ''}`;
+${appContext ? `CURRENT USER SESSION CONTEXT:\n${JSON.stringify(appContext, null, 2)}` : ''}`;
 
   const formattedContents = messages.slice(-10).map((m) => ({
     role: m.role === 'user' ? 'user' : 'model',
     parts: [{ text: m.content }],
   }));
 
-  // Build model candidate chain
+  // Candidate models fallback chain
   const candidateModels = Array.from(
     new Set([
-      config.geminiModel || 'gemini-2.0-flash',
+      config.geminiModel || 'gemini-3.5-flash-lite',
       ...(config.geminiFallbackModels || []),
-      'gemini-1.5-flash',
-      'gemini-2.0-flash-lite',
-      'gemini-1.5-pro',
+      'gemini-3.5-flash-lite',
+      'gemini-flash-lite-latest',
+      'gemini-3.5-flash',
+      'gemini-flash-latest',
     ])
   ).filter(Boolean);
 
@@ -251,7 +361,7 @@ ${appContext ? `CURRENT APP CONTEXT FROM USER SESSION:\n${JSON.stringify(appCont
 
   for (let mIdx = 0; mIdx < candidateModels.length; mIdx++) {
     const currentModel = candidateModels[mIdx];
-    const maxRetries = 3;
+    const maxRetries = 1; // 1 attempt per model for max speed
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -260,14 +370,13 @@ ${appContext ? `CURRENT APP CONTEXT FROM USER SESSION:\n${JSON.stringify(appCont
           currentModel,
           formattedContents,
           systemInstruction,
-          20000
+          7500
         );
 
         console.log(
           `[AI Service Success] Answer generated by model "${currentModel}" on attempt ${attempt}.`
         );
 
-        // Cache successful response for identical short queries
         if (messages.length <= 2 && cacheKey) {
           chatCache.set(cacheKey, {
             reply: replyText,
@@ -278,28 +387,23 @@ ${appContext ? `CURRENT APP CONTEXT FROM USER SESSION:\n${JSON.stringify(appCont
         return replyText;
       } catch (err: any) {
         lastError = err;
-        const retryable = isRetryableError(err);
-
-        if (!retryable) {
-          console.error(`[AI Service Fatal] Non-retryable error on model "${currentModel}":`, err?.message || err);
-          throw err;
-        }
-
-        if (attempt < maxRetries) {
-          const delayMs = Math.pow(2, attempt - 1) * 1000 + Math.floor(Math.random() * 500);
-          console.warn(
-            `[AI Service Warning] Model "${currentModel}" failed attempt ${attempt}/${maxRetries} (${err?.message || err}). Retrying in ${delayMs}ms...`
-          );
-          await new Promise((res) => setTimeout(res, delayMs));
-        } else {
-          console.warn(
-            `[AI Service Warning] Model "${currentModel}" failed all ${maxRetries} attempts. Trying fallback models...`
-          );
-        }
+        console.warn(
+          `[AI Service Warning] Model "${currentModel}" failed attempt ${attempt} (${err?.message || err}).`
+        );
       }
     }
   }
 
-  console.error('[AI Chat Service Error] All Gemini models in fallback chain failed.');
-  throw lastError || new Error('All Gemini model candidates failed to respond.');
+  console.warn('[AI Chat Service Notice] All Gemini models failed or timed out. Triggering DB direct grounding fallback.');
+  const fallbackReply = formatDbFallbackResponse(pgResults, lastUserMessage);
+
+  if (messages.length <= 2 && cacheKey) {
+    chatCache.set(cacheKey, {
+      reply: fallbackReply,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
+  }
+
+  return fallbackReply;
 };
+
