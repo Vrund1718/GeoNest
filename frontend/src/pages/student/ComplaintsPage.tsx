@@ -35,10 +35,12 @@ export const ComplaintsPage: React.FC = () => {
         api.get('/active-bookings')
       ]);
       const bookings = resActive.data.bookings || [];
+      const validBookings = bookings.filter((b: any) => b && (b.pgId || b._id));
       setItems(resComplaints.data.complaints || []);
-      setActiveBookings(bookings);
-      if (bookings.length > 0 && !form.pgId) {
-        setForm(prev => ({ ...prev, pgId: bookings[0].pgId?._id || bookings[0].pgId }));
+      setActiveBookings(validBookings);
+      if (validBookings.length > 0) {
+        const firstId = validBookings[0].pgId?._id ? String(validBookings[0].pgId._id) : String(validBookings[0].pgId || '');
+        setForm(prev => ({ ...prev, pgId: prev.pgId || firstId }));
       }
     } catch {}
     setLoading(false);
@@ -49,6 +51,10 @@ export const ComplaintsPage: React.FC = () => {
 
   const handleCreateComplaint = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.pgId && activeBookings.length > 0) {
+      const fallbackId = activeBookings[0].pgId?._id ? String(activeBookings[0].pgId._id) : String(activeBookings[0].pgId || '');
+      form.pgId = fallbackId;
+    }
     if (!form.pgId) return showToast('Please select a PG');
     if (form.description.trim().length < 10) return showToast('Description must be at least 10 characters');
 
@@ -61,8 +67,9 @@ export const ComplaintsPage: React.FC = () => {
       load();
     } catch (err: any) {
       showToast(err.response?.data?.error || 'Failed to file complaint');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   return (
@@ -109,11 +116,14 @@ export const ComplaintsPage: React.FC = () => {
                   onChange={(e) => setForm({ ...form, pgId: e.target.value })}
                   required
                 >
-                  {activeBookings.map((b) => (
-                    <option key={b._id} value={b.pgId?._id || b.pgId}>
-                      {b.pgId?.name || 'PG Accommodation'} ({b.status})
-                    </option>
-                  ))}
+                  {activeBookings.map((b) => {
+                    const optVal = b.pgId?._id ? String(b.pgId._id) : String(b.pgId || b._id);
+                    return (
+                      <option key={b._id} value={optVal}>
+                        {b.pgId?.name || 'PG Accommodation'} ({b.status})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 

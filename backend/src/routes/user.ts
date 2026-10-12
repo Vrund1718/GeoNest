@@ -18,7 +18,7 @@ router.use(requireAuth);
 
 router.get('/my-pg', async (req: AuthRequest, res) => {
   try {
-    const bookings = await Booking.find({ userId: req.user!._id, status: { $in: ['requested', 'confirmed', 'completed'] } })
+    const bookings = await Booking.find({ userId: req.user!._id })
       .populate({
         path: 'pgId',
         populate: { path: 'ownerId', populate: { path: 'userId', select: 'name email phone' } }
@@ -140,7 +140,7 @@ router.get('/bookings/me', async (req: AuthRequest, res) => {
 
 router.get('/active-bookings', async (req: AuthRequest, res) => {
   try {
-    const bookings = await Booking.find({ userId: req.user!._id, status: { $in: ['requested', 'confirmed', 'completed'] } })
+    const bookings = await Booking.find({ userId: req.user!._id })
       .populate('pgId', 'name city address pricePerMonth primaryImage')
       .sort({ createdAt: -1 });
     return res.json({ bookings });
@@ -344,26 +344,32 @@ router.get('/wishlist/me', async (req: AuthRequest, res) => {
 router.post('/complaints', async (req: AuthRequest, res) => {
   try {
     const { pgId, type, description, priority, photoUrls } = req.body;
-    
-    // Check for registered booking (requested, confirmed, or completed)
-    const bookingFilter: any = { 
-      userId: req.user!._id, 
-      status: { $in: ['requested', 'confirmed', 'completed'] } 
-    };
-    if (pgId) {
-      bookingFilter.pgId = pgId;
+    let targetPgId = typeof pgId === 'object' && pgId?._id ? String(pgId._id) : (pgId ? String(pgId) : '');
+
+    // Check for registered booking
+    const bookingFilter: any = { userId: req.user!._id };
+    if (targetPgId) {
+      bookingFilter.pgId = targetPgId;
     }
 
-    const booking = await Booking.findOne(bookingFilter);
-    
+    let booking = await Booking.findOne(bookingFilter);
+    // If not found with specific pgId, check if user has any booking at all
     if (!booking) {
+      booking = await Booking.findOne({ userId: req.user!._id });
+    }
+
+    if (!booking && req.user!.role !== 'admin') {
       return res.status(403).json({ error: 'You can only file a complaint for a PG where you have registered or stayed.' });
+    }
+
+    if (!targetPgId && booking) {
+      targetPgId = String(booking.pgId);
     }
 
     const complaint = await Complaint.create({
       userId: req.user!._id,
-      pgId,
-      type,
+      pgId: targetPgId,
+      type: type || 'other',
       description,
       priority: priority || 'medium',
       photoUrls: photoUrls || [],
@@ -371,7 +377,7 @@ router.post('/complaints', async (req: AuthRequest, res) => {
     });
 
     // Notify owner
-    const pg = await PGListing.findById(pgId).populate<{ ownerId: any }>('ownerId');
+    const pg = await PGListing.findById(targetPgId).populate<{ ownerId: any }>('ownerId');
     const ownerUserId = pg?.ownerId?.userId;
     if (ownerUserId) {
       await sendNotification(
@@ -385,9 +391,9 @@ router.post('/complaints', async (req: AuthRequest, res) => {
     }
 
     return res.status(201).json({ complaint });
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    return res.status(500).json({ error: 'Failed to file complaint' });
+    return res.status(500).json({ error: err.message || 'Failed to file complaint' });
   }
 });
 

@@ -8,7 +8,6 @@ import api from '../../lib/api';
 import { Amenity, Image, NearbyPlace, PGListing, Review } from '../../types';
 import { RatingStars, PageHeader, SkeletonDetail } from '../../components/shared';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
 import { Share2, Copy, MessageCircle, Star, AlertCircle, Check, MapPin, Calendar, Heart, ShieldCheck } from 'lucide-react';
 
 const pinIcon = L.divIcon({
@@ -22,7 +21,6 @@ export const PGDetailsPage: React.FC = () => {
   const { id } = useParams();
   const nav = useNavigate();
   const { user } = useAuth();
-  const { theme } = useTheme();
   const [pg, setPg] = useState<PGListing | null>(null);
   const [images, setImages] = useState<Image[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -144,7 +142,10 @@ export const PGDetailsPage: React.FC = () => {
 
     if (user.role === 'student') {
       api.get('/active-bookings').then((r) => {
-        const activeForThisPg = (r.data.bookings || []).some((b: any) => b.pgId?._id === id || b.pgId === id);
+        const activeForThisPg = (r.data.bookings || []).some((b: any) => {
+          const bPgId = b.pgId?._id ? String(b.pgId._id) : String(b.pgId || '');
+          return bPgId === String(id);
+        });
         setHasActiveBooking(activeForThisPg);
       }).catch(() => {});
     }
@@ -163,6 +164,7 @@ export const PGDetailsPage: React.FC = () => {
     setOverlapSuggestion(null);
     try {
       await api.post(`/pg/${id}/book`, { startDate: bookDates.start, endDate: bookDates.end });
+      setHasActiveBooking(true);
       toast.success('Booking request sent successfully!');
       nav('/student/bookings');
     } catch (e: any) {
@@ -405,17 +407,8 @@ export const PGDetailsPage: React.FC = () => {
             <div className="h-64 sm:h-72 rounded-2xl overflow-hidden border border-ink/10 dark:border-slate-700">
               <MapContainer center={[lat, lng]} zoom={15} scrollWheelZoom={false} className="h-full w-full">
                 <TileLayer
-                  key={theme}
-                  attribution={
-                    theme === 'dark'
-                      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                      : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  }
-                  url={
-                    theme === 'dark'
-                      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-                  }
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 {indiaGeoJson && (
                   <GeoJSON 

@@ -466,11 +466,10 @@ router.post('/:id/complaints', requireAuth, validate(complaintSchema), async (re
     const pg = await PGListing.findById(req.params.id).populate<{ ownerId: any }>('ownerId');
     if (!pg) return res.status(404).json({ error: 'PG not found' });
 
-    // Allow registered students with requested, confirmed, or completed bookings
+    // Allow registered students with a booking for this PG
     const registeredBooking = await Booking.findOne({
       pgId: pg._id,
       userId: req.user!._id,
-      status: { $in: ['requested', 'confirmed', 'completed'] },
     });
     if (!registeredBooking && req.user!.role !== 'admin') {
       return res.status(403).json({ error: 'You can only file a complaint for a PG where you have registered or stayed.' });

@@ -2,15 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { stripMarkdown } from '../hooks/useVoiceAssistant';
 
 describe('GeoNest UI & AI Upgrade Core Logic', () => {
-  it('toggles theme correctly between light and dark', () => {
-    let currentTheme: 'light' | 'dark' = 'light';
+  it('keeps theme in light mode', () => {
+    let currentTheme: 'light' = 'light';
     const toggleTheme = () => {
-      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      // dark mode removed permanently
     };
 
     expect(currentTheme).toBe('light');
-    toggleTheme();
-    expect(currentTheme).toBe('dark');
     toggleTheme();
     expect(currentTheme).toBe('light');
   });

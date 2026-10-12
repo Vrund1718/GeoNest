@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../../lib/api';
@@ -38,14 +38,36 @@ export const OwnerPGFormPage: React.FC = () => {
   const { id } = useParams();
   const nav = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const [createdPgId, setCreatedPgId] = useState<string | null>(null);
+  const activeId = id || createdPgId;
   const editMode = Boolean(id);
-  const [step, setStep] = useState(() => (location.pathname.endsWith('/images') ? 4 : 0));
+
+  const getInitialStep = () => {
+    if (location.pathname.endsWith('/images')) return 4;
+    const s = searchParams.get('step');
+    if (s !== null) {
+      const parsed = parseInt(s, 10);
+      if (!isNaN(parsed) && parsed >= 0 && parsed < STEPS.length) return parsed;
+    }
+    return 0;
+  };
+
+  const [step, setStep] = useState(getInitialStep);
 
   useEffect(() => {
     if (location.pathname.endsWith('/images')) {
       setStep(4);
+    } else {
+      const s = searchParams.get('step');
+      if (s !== null) {
+        const parsed = parseInt(s, 10);
+        if (!isNaN(parsed) && parsed >= 0 && parsed < STEPS.length) {
+          setStep(parsed);
+        }
+      }
     }
-  }, [location.pathname]);
+  }, [location.pathname, searchParams]);
 
   const [form, setForm] = useState<any>({
     name: '', address: '', city: 'Ahmedabad', collegeName: '',
@@ -68,10 +90,10 @@ export const OwnerPGFormPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!editMode) return;
+    if (!activeId) return;
     (async () => {
       try {
-        const { data } = await api.get(`/owners/pg/${id}`);
+        const { data } = await api.get(`/owners/pg/${activeId}`);
         const pg = data.pg;
         setForm({
           name: pg.name, address: pg.address, city: pg.city, collegeName: pg.collegeName || '',
@@ -84,7 +106,7 @@ export const OwnerPGFormPage: React.FC = () => {
         setImages(data.images || []);
       } catch {}
     })();
-  }, [id, editMode]);
+  }, [activeId]);
 
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2500); };
 
@@ -104,37 +126,43 @@ export const OwnerPGFormPage: React.FC = () => {
     };
     setSaving(true);
     try {
-      let pgId = id;
-      if (editMode) {
-        await api.put(`/owners/pg/${id}`, payload);
+      let pgId = activeId;
+      if (activeId) {
+        await api.put(`/owners/pg/${activeId}`, payload);
         showToast('PG updated');
       } else {
         const { data } = await api.post('/owners/pg', payload);
         pgId = data.pg._id;
-        showToast('PG created');
+        setCreatedPgId(pgId);
+        showToast('PG created successfully');
       }
       if (!editMode && pgId) {
+        setStep(4);
         nav(`/owner/pg/${pgId}/edit?step=4`, { replace: true });
         return;
       }
       setStep((s) => Math.min(s + 1, STEPS.length - 1));
     } catch (e: any) {
       showToast(e.response?.data?.error || 'Failed to save');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const uploadImages = async (files: FileList) => {
-    if (!id) { showToast('Please save the PG first'); return; }
+    const targetId = activeId;
+    if (!targetId) { showToast('Please save the PG first'); return; }
     const fd = new FormData();
     Array.from(files).forEach(f => fd.append('images', f));
     setUploading(true);
     try {
-      const { data } = await api.post(`/owners/pg/${id}/images`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const { data } = await api.post(`/owners/pg/${targetId}/images`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setImages((i) => [...i, ...(data.images || [])]);
       showToast(`Uploaded ${data.images?.length || 0} image(s)`);
     } catch (e: any) { showToast(e.response?.data?.error || 'Upload failed'); }
-    setUploading(false);
+    finally {
+      setUploading(false);
+    }
   };
 
   const validateStep = (s: number) => {
@@ -408,7 +436,7 @@ export const OwnerPGFormPage: React.FC = () => {
 
         {step === 4 && (
           <div className="space-y-4">
-            {!id ? (
+            {!activeId ? (
               <div className="card p-6 text-center border-dashed border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/30">
                 <AlertCircle className="w-10 h-10 text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
                 <p className="font-medium text-ink-700 dark:text-slate-200">Save the PG details first before uploading images.</p>
@@ -448,7 +476,7 @@ export const OwnerPGFormPage: React.FC = () => {
             <span>{step === 0 ? 'Cancel' : 'Back'}</span>
           </button>
           <div className="flex gap-2">
-            {id && step < 4 && (
+            {activeId && step < 4 && (
               <button onClick={() => saveBasic()} disabled={saving} className="btn-secondary">
                 <Save className="w-4 h-4" />
                 <span>{saving ? 'Saving...' : 'Save draft'}</span>

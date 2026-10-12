@@ -4,8 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 import { Notification } from '../types';
 import { Menu, X, Bell, LogOut, MapPin, Building, ChevronRight } from 'lucide-react';
-import { ThemeToggle } from '../components/ThemeToggle';
-import { LanguageSelector } from '../components/LanguageSelector';
 import { AIChatDrawer } from '../components/AIChatDrawer';
 
 interface NavItem { path: string; label: string; icon: string; }
@@ -238,8 +236,6 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ navItems, brand }) => {
           <div className="flex-1" />
 
           <div className="flex items-center gap-2">
-            <LanguageSelector />
-            <ThemeToggle />
             {/* Notifications Dropdown */}
             <div className="relative">
               <button

@@ -6,10 +6,6 @@
   color-scheme: light;
 }
 
-html.dark {
-  color-scheme: dark;
-}
-
 html, body, #root {
   height: 100%;
   min-width: 0;
