@@ -78,14 +78,16 @@ export const reviewSchema = z.object({
 
 export const complaintSchema = z.object({
   body: z.object({
+    pgId: z.string().optional(),
     type: z.enum([
       'hygiene', 'noise', 'safety', 'staff', 'amenity', 'electrician',
       'plumber', 'wifi', 'furniture', 'water', 'security', 'pest_control',
       'food', 'other'
-    ]),
+    ]).optional(),
     description: z.string().min(10, 'Description must be at least 10 characters'),
-    priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+    priority: z.enum(['low', 'medium', 'high', 'urgent', 'critical']).optional(),
     photoUrls: z.array(z.string()).optional(),
+    intelligence: z.record(z.any()).optional(),
   }),
 });
 

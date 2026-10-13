@@ -94,10 +94,10 @@ router.put('/complaints/:id', async (req: AuthRequest, res) => {
     const { status } = req.body;
     const complaint = await Complaint.findById(req.params.id);
     if (!complaint) return res.status(404).json({ error: 'Complaint not found' });
-    if (status && ['open', 'in_progress', 'resolved'].includes(status)) {
+    if (status && ['open', 'assigned', 'in_progress', 'resolved', 'reopened', 'closed'].includes(status)) {
       const oldStatus = complaint.status;
       complaint.status = status;
-      if (status === 'resolved') complaint.resolvedAt = new Date();
+      if (status === 'resolved' || status === 'closed') complaint.resolvedAt = new Date();
       await complaint.save();
       if (oldStatus !== status) {
         await sendNotification(

@@ -16,6 +16,7 @@ import { computeNeighbourhoodScore, summarizeReviewSentiment } from '../services
 import { sendNotification } from '../utils/notifications';
 import { bookingSchema, reviewSchema, complaintSchema, validate } from '../middleware/validate';
 import { processOverdueComplaintPenalties } from '../services/ratingPenaltyService';
+import { classifyComplaint, computeTargetResolutionDate, checkSafetyOverride } from '../services/complaintIntelligence';
 
 const router = Router();
 
@@ -475,25 +476,54 @@ router.post('/:id/complaints', requireAuth, validate(complaintSchema), async (re
       return res.status(403).json({ error: 'You can only file a complaint for a PG where you have registered or stayed.' });
     }
 
-    const { type, description, priority, photoUrls } = req.body;
+    const { type, description, priority, photoUrls, intelligence: clientIntelligence } = req.body;
+
+    let intelligenceData = clientIntelligence;
+    if (!intelligenceData || !intelligenceData.analysisStatus || intelligenceData.analysisStatus === 'pending') {
+      intelligenceData = await classifyComplaint(description, {
+        userCategory: type,
+        userPriority: priority,
+      });
+    } else {
+      const safety = checkSafetyOverride(description);
+      if (safety.isCritical) {
+        intelligenceData.priority = 'critical';
+        intelligenceData.immediateEscalation = true;
+        intelligenceData.requiresHumanReview = true;
+      }
+    }
+
+    const effectivePriority = intelligenceData.priority || priority || 'medium';
+    const sla = computeTargetResolutionDate(effectivePriority);
+
     const complaint = await Complaint.create({
       userId: req.user!._id,
       pgId: pg._id,
-      type,
+      type: type || (intelligenceData.category as any) || 'other',
       description,
-      priority: priority || 'medium',
+      priority: effectivePriority,
       photoUrls: photoUrls || [],
       status: 'open',
+      intelligence: intelligenceData,
+      estimatedResolutionHours: sla.hours,
+      estimatedResolutionDate: sla.dueAt,
+      dueAt: sla.dueAt,
     });
 
     // Notify owner
     const ownerUserId = (pg.ownerId as any)?.userId;
     if (ownerUserId) {
+      const isCritical = effectivePriority === 'critical' || intelligenceData.immediateEscalation;
+      const title = isCritical ? '🚨 CRITICAL COMPLAINT ESCALATION' : 'New Complaint Filed';
+      const body = isCritical
+        ? `EMERGENCY ALERT: ${req.user!.name} raised a critical safety complaint for "${pg.name}". Immediate action required!`
+        : `${req.user!.name} raised a ${effectivePriority} priority complaint (${intelligenceData.category}) for "${pg.name}".`;
+
       await sendNotification(
         ownerUserId,
         'complaint_status',
-        'New Complaint Filed',
-        `${req.user!.name} raised a ${priority || 'medium'} priority complaint for "${pg.name}".`,
+        title,
+        body,
         { type: 'complaint', id: complaint._id },
         `/owner/complaints#${complaint._id}`
       );

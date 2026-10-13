@@ -119,13 +119,43 @@ export interface WishlistEntry {
   pgId: PGListing;
 }
 
+export type IntelligenceCategory =
+  | 'plumbing'
+  | 'electrical'
+  | 'wifi'
+  | 'cleaning'
+  | 'furniture'
+  | 'appliances'
+  | 'food'
+  | 'security'
+  | 'other';
+
+export type IntelligencePriority = 'low' | 'medium' | 'high' | 'critical';
+
+export interface ComplaintIntelligence {
+  category: IntelligenceCategory;
+  issueType: string;
+  priority: IntelligencePriority;
+  confidence: number;
+  suggestedAction: string;
+  recurringIssue: boolean;
+  relatedComplaintIds?: string[];
+  modelVersion: string;
+  reviewedByHuman: boolean;
+  analysisStatus: 'pending' | 'done' | 'failed' | 'skipped';
+  asset?: string;
+  location?: string;
+  requiresHumanReview?: boolean;
+  immediateEscalation?: boolean;
+}
+
 export interface Complaint {
   _id: string;
   userId: { _id: string; name: string; email: string };
   pgId: { _id: string; name: string; city: string; ratingPenalty?: number };
   type: 'hygiene' | 'noise' | 'safety' | 'staff' | 'amenity' | 'electrician' | 'plumber' | 'wifi' | 'furniture' | 'water' | 'security' | 'pest_control' | 'food' | 'other';
   description: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  priority: 'low' | 'medium' | 'high' | 'urgent' | 'critical';
   photoUrls: string[];
   responses: {
     role: 'student' | 'owner' | 'admin';
@@ -136,8 +166,12 @@ export interface Complaint {
   estimatedResolutionDate?: string;
   ratingDeducted?: boolean;
   ratingDeductionAmount?: number;
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  status: 'open' | 'assigned' | 'in_progress' | 'resolved' | 'reopened' | 'closed';
   resolvedAt?: string;
+  intelligence?: ComplaintIntelligence;
+  assignedTo?: string;
+  dueAt?: string;
+  reopenCount?: number;
   createdAt: string;
 }
 

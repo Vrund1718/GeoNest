@@ -13,6 +13,7 @@ import pgRoutes from './routes/pg';
 import userRoutes from './routes/user';
 import recRoutes from './routes/recommendations';
 import aiRoutes from './routes/ai';
+import complaintsRoutes from './routes/complaints';
 
 const app = express();
 
@@ -141,6 +142,8 @@ app.use('/api/pg/search', searchLimiter);
 app.use('/api/pg', pgRoutes);
 app.use('/api/recommendations', recLimiter, recRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/complaints', complaintsRoutes);
+app.use('/complaints', complaintsRoutes);
 
 app.use('/api', userRoutes);
 app.use('/', userRoutes);

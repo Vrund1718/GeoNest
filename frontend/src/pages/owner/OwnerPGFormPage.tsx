@@ -149,11 +149,6 @@ export const OwnerPGFormPage: React.FC = () => {
     }
   };
 
-<<<<<<< HEAD
-  const uploadImages = async (files: FileList) => {
-    const targetId = activeId;
-    if (!targetId) { showToast('Please save the PG first'); return; }
-=======
   const [pendingPreviews, setPendingPreviews] = useState<{ file: File; previewUrl: string }[]>([]);
 
   const handleFileSelection = (files: FileList) => {
@@ -185,7 +180,7 @@ export const OwnerPGFormPage: React.FC = () => {
   };
 
   const uploadImages = async (filesToUpload?: File[]) => {
-    let pgId = id;
+    const pgId = id || activeId;
     if (!pgId) {
       showToast('Please save PG basic details first');
       return;
@@ -196,29 +191,19 @@ export const OwnerPGFormPage: React.FC = () => {
       return;
     }
 
->>>>>>> 8b2400eb7a71ced43174a9f3fcabafbc29609b5a
     const fd = new FormData();
     targetFiles.forEach((f) => fd.append('images', f));
     setUploading(true);
     try {
-<<<<<<< HEAD
-      const { data } = await api.post(`/owners/pg/${targetId}/images`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setImages((i) => [...i, ...(data.images || [])]);
-      showToast(`Uploaded ${data.images?.length || 0} image(s)`);
-    } catch (e: any) { showToast(e.response?.data?.error || 'Upload failed'); }
-    finally {
-      setUploading(false);
-    }
-=======
       const { data } = await api.post(`/owners/pg/${pgId}/images`, fd);
       setImages((i) => [...i, ...(data.images || [])]);
       setPendingPreviews([]);
       showToast(`Successfully uploaded ${data.images?.length || 0} image(s)!`);
     } catch (e: any) {
       showToast(e.response?.data?.error || 'Upload failed');
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
->>>>>>> 8b2400eb7a71ced43174a9f3fcabafbc29609b5a
   };
 
   const handleDeleteImage = async (imageId: string) => {
@@ -519,32 +504,13 @@ export const OwnerPGFormPage: React.FC = () => {
         )}
 
         {step === 4 && (
-<<<<<<< HEAD
-          <div className="space-y-4">
-            {!activeId ? (
-              <div className="card p-6 text-center border-dashed border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/30">
-                <AlertCircle className="w-10 h-10 text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
-                <p className="font-medium text-ink-700 dark:text-slate-200">Save the PG details first before uploading images.</p>
-                <button onClick={saveBasic} disabled={saving} className="btn-primary mt-4">
-                  {saving ? 'Saving...' : 'Save PG & upload images'}
-                </button>
-              </div>
-            ) : (
-              <>
-                <label className="block border-2 border-dashed border-ink/20 dark:border-slate-700 rounded-2xl p-6 sm:p-8 text-center hover:border-indigo-500 hover:bg-indigo-50/40 dark:hover:bg-slate-700/50 transition cursor-pointer">
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => e.target.files && uploadImages(e.target.files)} disabled={uploading} />
-                  <Upload className="w-10 h-10 text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
-                  <p className="font-medium text-ink-700 dark:text-slate-200 text-sm sm:text-base">
-                    {uploading ? 'Uploading images...' : 'Drop images or click to browse'}
-=======
           <div className="space-y-6">
-            {!id && (
+            {!id && !activeId && (
               <div className="card p-4 sm:p-5 border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0" />
                   <p className="text-xs sm:text-sm font-medium text-amber-900 dark:text-amber-200">
                     Click "Save & Upload" below to save PG details and upload your selected images.
->>>>>>> 8b2400eb7a71ced43174a9f3fcabafbc29609b5a
                   </p>
                 </div>
               </div>

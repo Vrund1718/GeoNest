@@ -416,12 +416,19 @@ router.put('/complaints/:id', async (req: AuthRequest, res) => {
       }
     }
 
-    const { status, responseMessage, estimatedResolutionHours } = req.body;
+    const { status, responseMessage, estimatedResolutionHours, assignedTo } = req.body;
     
-    if (status && ['open', 'in_progress', 'resolved', 'closed'].includes(status)) {
+    if (status && ['open', 'assigned', 'in_progress', 'resolved', 'reopened', 'closed'].includes(status)) {
       complaint.status = status;
       if (status === 'resolved' || status === 'closed') {
         complaint.resolvedAt = new Date();
+      }
+    }
+
+    if (assignedTo !== undefined) {
+      complaint.assignedTo = assignedTo;
+      if (complaint.status === 'open' && String(assignedTo).trim().length > 0) {
+        complaint.status = 'assigned';
       }
     }
 
